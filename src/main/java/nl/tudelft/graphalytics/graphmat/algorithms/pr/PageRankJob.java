@@ -15,11 +15,12 @@
  */
 package nl.tudelft.graphalytics.graphmat.algorithms.pr;
 
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;
-import nl.tudelft.graphalytics.graphmat.config.JobConfiguration;
-import org.apache.commons.exec.CommandLine;
+import java.util.List;
 
-import java.nio.file.Paths;
+import org.apache.commons.configuration.Configuration;
+
+import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.graphmat.GraphMatJob;	
 
 /**
  * PR
@@ -29,6 +30,8 @@ import java.nio.file.Paths;
  */
 public final class PageRankJob extends GraphMatJob {
 
+	private final PageRankParameters params;
+	
 	/**
 	 * Creates a new PageRankJob object with all mandatory parameters specified.
 	 *
@@ -36,31 +39,20 @@ public final class PageRankJob extends GraphMatJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public PageRankJob(JobConfiguration jobConfiguration, String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, graphInputPath, graphOutputPath);
+	public PageRankJob(Configuration config, String graphPath, PageRankParameters params) {
+		super(config, graphPath);
+		this.params = params;
 	}
 
 	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		//TODO check if supported
-//		commandLine.addArgument("-e=1e-15")
-//				.addArgument("-d=" + parameters.getDampingFactor())
-//				.addArgument("-max_iterations=" + parameters.getNumberOfIterations());
+	protected String getExecutable() {
+		return "pr";
 	}
 
 	@Override
-	protected void appendAlgorithm(CommandLine commandLine) {
-		commandLine.addArgument(Paths.get(jobConfiguration.getExecutableDirectory(), getExecutableName()).toString(), false);
-	}
-
-	@Override
-	protected String getExecutableName() {
-		return "PageRank";
-	}
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
+	protected void addJobArguments(List<String> args) {
+		args.add(Integer.toString(params.getNumberOfIterations()));
+		args.add(Double.toString(params.getDampingFactor()));
 	}
 
 }

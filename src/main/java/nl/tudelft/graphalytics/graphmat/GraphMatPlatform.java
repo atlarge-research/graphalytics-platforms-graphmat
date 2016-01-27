@@ -22,13 +22,15 @@ import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
 import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
 import nl.tudelft.graphalytics.domain.*;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
+import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
+import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.graphalytics.granula.GranulaManager;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
+import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
+import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.stats.StatsJob;
-import nl.tudelft.graphalytics.graphmat.config.JobConfiguration;
-import nl.tudelft.graphalytics.graphmat.config.JobConfigurationParser;
+import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
 import nl.tudelft.graphalytics.graphmat.reporting.logging.GraphMatLogger;
 import nl.tudelft.pds.granula.modeller.graphmat.job.GraphMat;
 import nl.tudelft.pds.granula.modeller.model.job.JobModel;
@@ -40,6 +42,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -56,131 +60,127 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	public static final String PLATFORM_NAME = "graphmat";
 	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
 
-	public static final String GRAPHMAT_INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
-	public static final String GRAPHMAT_OUTPUT_DIR_KEY = "graphmat.output-dir";
+	public static final String RUN_COMMAND_FORMAT_KEY = "graphmat.command.run";
+	public static final String CONVERT_COMMAND_FORMAT_KEY = "graphmat.command.convert";
+	public static final String INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
 
-	private Configuration graphmatConfig;
-	private JobConfiguration jobConfiguration;
-	private String intermediateGraphDirectory;
-	private String graphOutputDirectory;
-	private String graphmatParserPath;
-
-	private String currentGraphPath;
-	private Long2LongMap currentGraphVertexIdTranslation;
+	public static final String CONVERT_BINARY_NAME = "./convert";
+	
+	private Configuration config;
+	private String graphPath;
 
 	public GraphMatPlatform() {
-		try {
-			loadConfiguration();
-		} catch (InvalidConfigurationException e) {
-			// TODO: Implement cleaner exit procedure
-			LOG.fatal(e);
-			System.exit(-1);
-		}
-	}
-
-	private void loadConfiguration() throws InvalidConfigurationException {
 		LOG.info("Parsing GraphMat configuration file.");
-
-		// Load GraphMat-specific configuration
+		
 		try {
-			graphmatConfig = new PropertiesConfiguration(PROPERTIES_FILENAME);
-		} catch (ConfigurationException e) {
-			// Fall-back to an empty properties file
+			config = new PropertiesConfiguration(PROPERTIES_FILENAME);
+		} catch (Exception e) {
 			LOG.warn("Could not find or load \"{}\"", PROPERTIES_FILENAME);
-			graphmatConfig = new PropertiesConfiguration();
+			config = new PropertiesConfiguration();
 		}
-
-		// Parse generic job configuration from the GraphMat properties file
-		jobConfiguration = JobConfigurationParser.parseGraphMatPropertiesFile(graphmatConfig);
-
-		intermediateGraphDirectory = ConfigurationUtil.getString(graphmatConfig, GRAPHMAT_INTERMEDIATE_DIR_KEY);
-		graphOutputDirectory = ConfigurationUtil.getString(graphmatConfig, GRAPHMAT_OUTPUT_DIR_KEY);
-		graphmatParserPath = Paths.get(jobConfiguration.getExecutableDirectory(), "graph_converter").toString();
-
-		ensureDirectoryExists(intermediateGraphDirectory, GRAPHMAT_INTERMEDIATE_DIR_KEY);
-		ensureDirectoryExists(graphOutputDirectory, GRAPHMAT_OUTPUT_DIR_KEY);
-	}
-
-	private static void ensureDirectoryExists(String directory, String property) throws InvalidConfigurationException {
-		System.out.println(directory);
-		File directoryFile = new File(directory);
-		if (directoryFile.exists()) {
-			if (!directoryFile.isDirectory()) {
-				throw new InvalidConfigurationException("Path \"" + directory + "\" set as property \"" + property +
-						"\" already exists, but is not a directory");
-			}
-			return;
-		}
-
-		if (!directoryFile.mkdirs()) {
-			throw new InvalidConfigurationException("Unable to create directory \"" + directory +
-					"\" set as property \"" + property + "\"");
-		}
-		LOG.info("Created directory \"{}\" and any missing parent directories", directory);
 	}
 
 	@Override
 	public void uploadGraph(Graph graph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", graph.getName());
 
-		//TODO check if this is true.
 		if (graph.getNumberOfVertices() > Integer.MAX_VALUE) {
-			throw new IllegalArgumentException("Graphalytics for GraphMat does not currently support graphs with more than Integer.MAX_VALUE vertices");
+			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices");
 		}
+		
+		String dir = config.getString(INTERMEDIATE_DIR_KEY, null);
+		String outputFile;
+		
+		if (dir != null) {
+			File f = new File(dir);
+			
+			if (!f.isDirectory() && !f.mkdirs()) {
+				throw new PlatformExecutionException("failed to create intermediate directory: " + dir);
+			}
+			
+			outputFile = dir + "/" + graph.getName() + ".mtx";
+		} else {
+			outputFile = File.createTempFile(graph.getName(), ".mtx").getAbsolutePath();
+		}
+		
+		boolean isDirected = graph.getGraphFormat().isDirected();
+		
+		String args = "--selfloops 0 " +
+		              "--duplicatededges 0 " +
+				      (!isDirected ? "--bidirectional " : "") +
+		              "--inputformat 1 " +
+				      "--outputformat 0 " + 
+		              "--inputheader 0 " +
+				      "--outputheader 1 " +
+		              "--inputedgeweights 0 " +
+				      "--outputedgeweights 2 " +
+		              "--edgeweighttype 0 " +
+				      graph.getEdgeFilePath() + " " +
+		              outputFile;
+		
+		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
+		String cmd = String.format(cmdFormat, CONVERT_BINARY_NAME, args);
+		
+		LOG.info("running command: {}", cmd);
+		
+		ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
+		pb.redirectError(Redirect.INHERIT);
+		pb.redirectOutput(Redirect.INHERIT);
 
-		String graphIntermediatePath = Paths.get(intermediateGraphDirectory, graph.getName()+".ev").toString();
-		String graphOutputPath = Paths.get(intermediateGraphDirectory, graph.getName()+".mtx").toString();
-		GraphParser.parseGraphAndWriteAdjacencyList(
-				graph.getVertexFilePath(), graph.getEdgeFilePath(),
-				graphIntermediatePath, graphOutputPath,
-				graph.getGraphFormat().isDirected(), (int)graph.getNumberOfVertices(), graphmatParserPath);
-		currentGraphPath = graphOutputPath;
+		int exit = pb.start().waitFor();
+		
+		if (exit != 0) {
+			throw new IOException("unexpected error code");
+		}
+		
+		graphPath = outputFile;
 	}
 
 	@Override
 	public PlatformBenchmarkResult executeAlgorithmOnGraph(Benchmark benchmark) throws PlatformExecutionException {
 
 		Algorithm algorithm = benchmark.getAlgorithm();
-		Graph graph = benchmark.getGraph();
-		Object parameters = benchmark.getAlgorithmParameters();
-
+		Object params = benchmark.getAlgorithmParameters();
 		GraphMatJob job;
-		String outputGraphPath = Paths.get(graphOutputDirectory, graph.getName() + "-" + algorithm).toString();
+
 		switch (algorithm) {
 			case BFS:
-				long sourceVertex = ((BreadthFirstSearchParameters)parameters).getSourceVertex();
-				job = new BreadthFirstSearchJob(sourceVertex, jobConfiguration, currentGraphPath, outputGraphPath);
+				job = new BreadthFirstSearchJob(config, graphPath, (BreadthFirstSearchParameters) params);
 				break;
-			case PAGERANK:
-				job = new PageRankJob(jobConfiguration, currentGraphPath, outputGraphPath);
+			case PR:
+				job = new PageRankJob(config, graphPath, (PageRankParameters) params);
 				break;
-			case STATS:
-				job = new StatsJob(jobConfiguration, currentGraphPath, outputGraphPath);
+			case WCC:
+				job = new WeaklyConnectedComponentsJob(config, graphPath);
+				break;
+			case CDLP:
+				job = new CommunityDetectionLPJob(config, graphPath, (CommunityDetectionLPParameters) params);
+				break;
+			case LCC:
+				job = new LocalClusteringCoefficientJob(config, graphPath);
 				break;
 			default:
-				// TODO: Implement other algorithms
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
+		
+		if (benchmark.isOutputRequired()) {
+			job.setOutputPath(benchmark.getOutputPath());
+		}
 
-		LOG.info("Executing algorithm \"{}\" on graph \"{}\".", algorithm.getName(), graph.getName());
-
-		int exitCode;
 		try {
-			exitCode = job.execute();
-		} catch (IOException e) {
-			throw new PlatformExecutionException("Failed to launch GraphMat", e);
+			job.execute();
+		} catch(IOException|InterruptedException e) {
+			throw new PlatformExecutionException("failed to execute command", e);
 		}
-
-		if (exitCode != 0) {
-			throw new PlatformExecutionException("GraphMat completed with a non-zero exit code: " + exitCode);
-		}
+			
 		return new PlatformBenchmarkResult(NestedConfiguration.empty());
 	}
 
 	@Override
 	public void deleteGraph(String graphName) {
-		// TODO: Implement
-		LOG.info("Deleting working copy of graph \"{}\". Not doing anything", graphName);
+		if(!new File(graphPath).delete()) {
+			LOG.warn("failed to delete temporary graph file '{}'", graphPath);
+		}
 	}
 
 	@Override
@@ -189,26 +189,22 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	}
 
 	@Override
-	public NestedConfiguration getPlatformConfiguration() {
-		return NestedConfiguration.fromExternalConfiguration(graphmatConfig, PROPERTIES_FILENAME);
-	}
-
-	@Override
 	public void setBenchmarkLogDirectory(Path logDirectory) {
-			GraphMatLogger.startPlatformLogging(logDirectory.resolve("OperationLog").resolve("driver.logs"));
+		GraphMatLogger.startPlatformLogging(logDirectory.resolve("OperationLog").resolve("driver.logs"));
 	}
 
 	@Override
 	public void finalizeBenchmarkLogs(Path logDirectory) {
-//			GraphMatLogger.collectYarnLogs(logDirectory);
-			// TODO replace with collecting logs from graphmat
-//			GraphMatLogger.collectUtilLog(null, null, 0, 0, logDirectory);
-			GraphMatLogger.stopPlatformLogging();
-
+		GraphMatLogger.stopPlatformLogging();
 	}
 
 	@Override
 	public JobModel getGranulaModel() {
 		return new GraphMat();
+	}
+
+	@Override
+	public NestedConfiguration getPlatformConfiguration() {
+		return NestedConfiguration.fromExternalConfiguration(config, PROPERTIES_FILENAME);
 	}
 }

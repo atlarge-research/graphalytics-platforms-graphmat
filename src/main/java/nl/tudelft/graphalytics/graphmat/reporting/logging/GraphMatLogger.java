@@ -15,22 +15,25 @@
  */
 package nl.tudelft.graphalytics.graphmat.reporting.logging;
 
-//import org.apache.log4j.FileAppender;
-//import org.apache.log4j.Level;
-//import org.apache.log4j.Logger;
-//import org.apache.log4j.PatternLayout;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import nl.tudelft.pds.granula.modeller.graphmat.job.GraphMat;
+
 /**
  * Created by wlngai on 9-9-15.
  */
-public class GraphMatLogger extends GraphalyticLogger {
+public class GraphMatLogger {
 
-//    protected static Level platformLogLevel = Level.DEBUG;
+    protected static final Logger LOG = LogManager.getLogger(GraphMatLogger.class);
+    
+    protected static Level coreLogLevel = Level.DEBUG;
 
     private static PrintStream console;
 

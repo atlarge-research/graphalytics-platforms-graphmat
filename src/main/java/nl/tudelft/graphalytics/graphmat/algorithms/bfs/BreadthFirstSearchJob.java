@@ -15,11 +15,14 @@
  */
 package nl.tudelft.graphalytics.graphmat.algorithms.bfs;
 
+import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.graphmat.GraphMatJob;
-import nl.tudelft.graphalytics.graphmat.config.JobConfiguration;
+
+import org.apache.commons.configuration.Configuration;
 import org.apache.commons.exec.CommandLine;
 
 import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * Breadth-first search job implementation for GraphMat. This class is responsible for formatting BFS-specific
@@ -30,41 +33,20 @@ import java.nio.file.Paths;
  */
 public final class BreadthFirstSearchJob extends GraphMatJob {
 
-	private final long sourceVertex;
+	private final BreadthFirstSearchParameters params;
 
-	/**
-	 * Creates a new BreadthFirstSearchJob object with all mandatory parameters specified.
-	 *
-	 * @param sourceVertex     the ID of the source vertex
-	 * @param jobConfiguration the generic GraphMat configuration to use for this job
-	 * @param graphInputPath   the path to the input graph
-	 * @param graphOutputPath  the path to the output graph
-	 */
-	public BreadthFirstSearchJob(long sourceVertex, JobConfiguration jobConfiguration,
-			String graphInputPath, String graphOutputPath) {
-		super(jobConfiguration, graphInputPath, graphOutputPath);
-		this.sourceVertex = sourceVertex;
+	public BreadthFirstSearchJob(Configuration config, String graphPath, BreadthFirstSearchParameters params) {
+		super(config, graphPath);
+		this.params = params;
 	}
 
 	@Override
-	protected void appendAlgorithm(CommandLine commandLine) {
-		commandLine.addArgument(Paths.get(jobConfiguration.getExecutableDirectory(), getExecutableName()).toString(), false);
-	}
-
-
-	@Override
-	protected void appendAlgorithmParameters(CommandLine commandLine) {
-		commandLine.addArgument(String.valueOf(sourceVertex), false);
+	protected String getExecutable() {
+		return "bfs";
 	}
 
 	@Override
-	protected String getExecutableName() {
-		return "BFS";
-	}
-
-
-	@Override
-	protected boolean usesEdgeProperties() {
-		return false;
+	protected void addJobArguments(List<String> args) {
+		args.add(Long.toString(params.getSourceVertex()));
 	}
 }
