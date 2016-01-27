@@ -6,7 +6,7 @@ include (config.cmake)
 if (NOT GRAPHMAT_HOME)
     get_filename_component(CONFIG_PATH config.cmake ABSOLUTE)
     message(FATAL_ERROR "Before running cmake, please specify $GRAPHMAT_HOME in: ${CONFIG_PATH}")
-end()
+endif ()
 
 set (CMAKE_CXX_COMPILER icpc)
 

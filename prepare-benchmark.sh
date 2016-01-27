@@ -25,3 +25,12 @@ fi
 # Set the "platform" variable
 export platform="graphmat"
 
+# Build binaries
+mkdir -p bin
+(cd bin && cmake -DCMAKE_BUILD_TYPE=Debug ../src/ && make all)
+
+if [ $? -ne 0 ]
+then
+    echo "compilation failed"
+    exit 1
+fi
