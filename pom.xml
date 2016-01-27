@@ -129,7 +129,7 @@
 							</excludes>
 						</filter>
 					</filters>
-					<finalName>${artifactId}-${version}-original-final</finalName>
+					<finalName>${project.artifactId}-${project.version}-original-final</finalName>
 				</configuration>
 				<executions>
 					<execution>
@@ -196,7 +196,7 @@
 						</configuration>
 					</execution>
 				</executions>
-			</plugin>
+            </plugin>
 
 			<!-- Maven release management -->
 			<!--

@@ -22,15 +22,6 @@ if [ ! -f "$config/graphmat.properties" ]; then
 	exit 1
 fi
 
-# Get the first specification of hadoop.home
-graphmathome=$(grep -E "^graphmat.home[	 ]*[:=]" $config/graphmat.properties | sed 's/graphmat.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ ! -d "$graphmathome/bin/" ]; then
-	echo "Invalid definition of graphmat.home: $graphmatphome" >&2
-	echo "Expecting both a \"bin\" and \"lib\" subdirectory." >&2
-	exit 1
-fi
-export LD_LIBRARY_PATH=$graphmathome/lib:$LD_LIBRARY_PATH
-
 # Set the "platform" variable
 export platform="graphmat"
 
