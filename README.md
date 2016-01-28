@@ -12,7 +12,7 @@ The following dependencies are required for this platform extension (in parenthe
 * CMake (3.2.2)
 * GNU Make (4.0)
 
-Download [GraphMat](https://github.com/narayanan2004/GraphMat/), unpack into any directory and modify in `src/main/c/config.mk` to variable `GRAPHMAT_HOME` to point to the root directory where GraphMat is installed.
+Download [GraphMat](https://github.com/narayanan2004/GraphMat/), unpack into any directory and modify in `src/main/c/config.mk` the variable `GRAPHMAT_HOME` to point to the root directory where GraphMat is installed.
 
 Finally, refer to the documation of the Graphayltics core on how to build and run this platform repository.
 
