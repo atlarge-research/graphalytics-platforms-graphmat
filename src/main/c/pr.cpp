@@ -48,7 +48,6 @@ class DegreeProgram: public GraphProgram<int, int, vertex_value_type> {
 
         void process_message(const int& msg, const int edge, const vertex_value_type& vertex, int& result) const {
             result = msg;
-            cout << msg << endl;
         }
 
         void reduce_function(int& total, const int& partial) const {

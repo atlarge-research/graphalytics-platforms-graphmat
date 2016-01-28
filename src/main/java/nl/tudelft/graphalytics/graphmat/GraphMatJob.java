@@ -68,24 +68,7 @@ public abstract class GraphMatJob {
 			args.add(outputPath);
 		}
 		
-		String argsString = "";
-		for (String arg: args) {
-			argsString += arg + " ";
-		}
-		
 		String cmdFormat = config.getString(GraphMatPlatform.RUN_COMMAND_FORMAT_KEY, "%s %s");
-		String cmd = String.format(cmdFormat, getExecutable(), argsString);
-
-		LOG.info("running command: {}", cmd);
-		
-		ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
-		pb.redirectError(Redirect.INHERIT);
-		pb.redirectOutput(Redirect.INHERIT);
-
-		int exit = pb.start().waitFor();
-		
-		if (exit != 0) {
-			throw new IOException("unexpected exit code");
-		}
+		GraphMatPlatform.runCommand(cmdFormat, getExecutable(), args);
 	}
 }

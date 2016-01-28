@@ -76,11 +76,6 @@ class CollectNeighborsProgram: public GraphProgram<collect_msg_type, collect_red
                 sort(vec.begin(), vec.end());
                 auto last = unique(vec.begin(), vec.end());
                 vec.erase(last, vec.end());
-
-                cout << vertex.id << endl;
-                for (auto it = vec.begin(); it != vec.end(); it++) {
-                    cout << " - " << *it << endl;
-                }
             }
         }
 };
@@ -114,7 +109,6 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
                 while (it_a != end_a && it_b != end_b) {
                     int delta = *it_a - *it_b;
-                    if (delta == 0 && (a.id == 1 || b.id == 1)) cout << a.id << " " << b.id << ": "<< *it_a << endl;
                     if (delta == 0) result++;
                     if (delta <= 0) it_a++;
                     if (delta >= 0) it_b++;

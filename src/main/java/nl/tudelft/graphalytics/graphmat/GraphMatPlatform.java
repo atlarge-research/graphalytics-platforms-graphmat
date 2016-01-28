@@ -46,6 +46,8 @@ import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * GraphMat platform integration for the Graphalytics benchmark.
@@ -64,10 +66,12 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	public static final String CONVERT_COMMAND_FORMAT_KEY = "graphmat.command.convert";
 	public static final String INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
 
-	public static final String CONVERT_BINARY_NAME = "./convert";
+	public static final String FORMAT_CONVERT_BINARY_NAME = "./format_convert";
+	public static final String MTX_CONVERT_BINARY_NAME = "./graph_convert";
 	
 	private Configuration config;
-	private String graphPath;
+	private String intermediateFile;
+	private String outputFile;
 
 	public GraphMatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
@@ -89,6 +93,7 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 		}
 		
 		String dir = config.getString(INTERMEDIATE_DIR_KEY, null);
+		String intermediateFile;
 		String outputFile;
 		
 		if (dir != null) {
@@ -97,43 +102,46 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 			if (!f.isDirectory() && !f.mkdirs()) {
 				throw new PlatformExecutionException("failed to create intermediate directory: " + dir);
 			}
-			
+
+			intermediateFile = dir + "/" + graph.getName() + ".txt";
 			outputFile = dir + "/" + graph.getName() + ".mtx";
 		} else {
+			intermediateFile = File.createTempFile(graph.getName(), ".txt").getAbsolutePath();
 			outputFile = File.createTempFile(graph.getName(), ".mtx").getAbsolutePath();
 		}
+
+
+		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
+		List<String> args = new ArrayList<>();
 		
+		// Convert from Graphalytics format to intermediate format
+		args.clear();
+		args.add(graph.getVertexFilePath());
+		args.add(graph.getEdgeFilePath());
+		args.add(intermediateFile);
+		runCommand(cmdFormat, FORMAT_CONVERT_BINARY_NAME, args);
+		
+		// Convert from intermediate format to MTX format
 		boolean isDirected = graph.getGraphFormat().isDirected();
 		
-		String args = "--selfloops 0 " +
-		              "--duplicatededges 0 " +
-				      (!isDirected ? "--bidirectional " : "") +
-		              "--inputformat 1 " +
-				      "--outputformat 0 " + 
-		              "--inputheader 0 " +
-				      "--outputheader 1 " +
-		              "--inputedgeweights 0 " +
-				      "--outputedgeweights 2 " +
-		              "--edgeweighttype 0 " +
-				      graph.getEdgeFilePath() + " " +
-		              outputFile;
+		args.clear();
+		args.add("--selfloops=0");
+		args.add("--duplicatededges=0");
+		if (!isDirected) args.add("--bidirectional");
+		args.add("--inputformat=1");
+		args.add("--outputformat=0");
+		args.add("--inputheader=0");
+		args.add("--outputheader=1");
+		args.add("--inputedgeweights=0");
+		args.add("--outputedgeweights=2");
+		args.add("--edgeweighttype=0");
+		args.add(intermediateFile);
+		args.add(outputFile);
+		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
 		
-		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
-		String cmd = String.format(cmdFormat, CONVERT_BINARY_NAME, args);
-		
-		LOG.info("running command: {}", cmd);
-		
-		ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
-		pb.redirectError(Redirect.INHERIT);
-		pb.redirectOutput(Redirect.INHERIT);
-
-		int exit = pb.start().waitFor();
-		
-		if (exit != 0) {
-			throw new IOException("unexpected error code");
-		}
-		
-		graphPath = outputFile;
+		// Success! Set paths to intermediate and output files
+		this.intermediateFile = intermediateFile;
+		this.outputFile = outputFile;
 	}
 
 	@Override
@@ -145,19 +153,19 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(config, graphPath, (BreadthFirstSearchParameters) params);
+				job = new BreadthFirstSearchJob(config, outputFile, (BreadthFirstSearchParameters) params);
 				break;
 			case PR:
-				job = new PageRankJob(config, graphPath, (PageRankParameters) params);
+				job = new PageRankJob(config, outputFile, (PageRankParameters) params);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(config, graphPath);
+				job = new WeaklyConnectedComponentsJob(config, outputFile);
 				break;
 			case CDLP:
-				job = new CommunityDetectionLPJob(config, graphPath, (CommunityDetectionLPParameters) params);
+				job = new CommunityDetectionLPJob(config, outputFile, (CommunityDetectionLPParameters) params);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(config, graphPath);
+				job = new LocalClusteringCoefficientJob(config, outputFile);
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
@@ -178,8 +186,33 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 
 	@Override
 	public void deleteGraph(String graphName) {
-		if(!new File(graphPath).delete()) {
-			LOG.warn("failed to delete temporary graph file '{}'", graphPath);
+		if(!new File(intermediateFile).delete()) {
+			LOG.warn("Failed to delete temporary file '{}'", intermediateFile);
+		}
+		
+		if(!new File(outputFile).delete()) {
+			LOG.warn("Failed to delete temporary file '{}'", outputFile);
+		}
+	}
+	
+	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
+		String argsString = "";
+		for (String arg: args) {
+			argsString += arg + " ";
+		}
+		
+		String cmd = String.format(format, binaryName, argsString);
+		
+		LOG.info("running command: {}", cmd);
+		
+		ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
+		pb.redirectError(Redirect.INHERIT);
+		pb.redirectOutput(Redirect.INHERIT);
+
+		int exit = pb.start().waitFor();
+		
+		if (exit != 0) {
+			throw new IOException("unexpected error code");
 		}
 	}
 
