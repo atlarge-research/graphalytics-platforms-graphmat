@@ -26,11 +26,22 @@ fi
 export platform="graphmat"
 
 # Build binaries
+if [ -z $GRAPHMAT_HOME ]; then
+    GRAPHMAT_HOME=`awk '{ if ($1 == "graphmat.home") print $3 }' $config/graphmat.properties`
+fi
+
+if [ -z $GRAPHMAT_HOME ]; then
+    echo "Error: home directory for GraphMat not specified."
+    echo "Define the environment variable \$GRAPHMAT_HOME or modify graphmat.home in $config/graphmat.properties"
+    exit 1
+fi
+
+
 mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Debug ../src/ && make all)
+(cd bin && cmake -DCMAKE_BUILD_TYPE=Debug ../src/ -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all)
 
 if [ $? -ne 0 ]
 then
-    echo "compilation failed"
+    echo "Compilation failed"
     exit 1
 fi

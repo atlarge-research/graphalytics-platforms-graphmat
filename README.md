@@ -12,14 +12,14 @@ The following dependencies are required for this platform extension (in parenthe
 * CMake (3.2.2)
 * GNU Make (4.0)
 
-Download [GraphMat](https://github.com/narayanan2004/GraphMat/) and unpack into any directory. Set the environment variable `GRAPHMAT_HOME` to point to the root directory where GraphMat is installed or modify the variable `GRAPHMAT_HOME` in `src/main/c/config.mk`.
+Download [GraphMat](https://github.com/narayanan2004/GraphMat/) and unpack into any directory. Modify `graphmat.home` in `config/graphmat.properties` to point to this directory or define the environment variable `GRAPHMAT_HOME`.
 
 Finally, refer to the documation of the Graphayltics core on how to build and run this platform repository.
 
 
 ## GraphMat-specific benchmark configuration
 
-Edit `config/powergraph.properties` to change the following settings:
+Edit `config/graphmat.properties` to change the following settings:
 
 - `graphmat.intermediate-dir`:  Directory where intermediate conversion files are stored. During the benchmark, graphs are converted from Graphalytics format to GraphMat format.
 - `graphmat.num-threads`: Number of threads to use when running GraphMat.
