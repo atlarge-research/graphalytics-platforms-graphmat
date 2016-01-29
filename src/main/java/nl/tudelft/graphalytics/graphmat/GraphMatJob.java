@@ -69,6 +69,6 @@ public abstract class GraphMatJob {
 		}
 		
 		String cmdFormat = config.getString(GraphMatPlatform.RUN_COMMAND_FORMAT_KEY, "%s %s");
-		GraphMatPlatform.runCommand(cmdFormat, getExecutable(), args);
+		GraphMatPlatform.runCommand(cmdFormat, GraphMatPlatform.BINARY_DIRECTORY + "/" + getExecutable(), args);
 	}
 }

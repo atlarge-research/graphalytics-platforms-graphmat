@@ -66,8 +66,9 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	public static final String CONVERT_COMMAND_FORMAT_KEY = "graphmat.command.convert";
 	public static final String INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
 
-	public static final String FORMAT_CONVERT_BINARY_NAME = "./format_convert";
-	public static final String MTX_CONVERT_BINARY_NAME = "./graph_convert";
+	public static final String BINARY_DIRECTORY = "./bin/";
+	public static final String FORMAT_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/format_convert";
+	public static final String MTX_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/graph_convert";
 	
 	private Configuration config;
 	private String intermediateFile;
