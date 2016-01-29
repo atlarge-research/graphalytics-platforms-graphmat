@@ -4,8 +4,12 @@ cmake_minimum_required (VERSION 2.6)
 include (config.cmake)
 
 if (NOT GRAPHMAT_HOME)
+    set (GRAPHMAT_HOME $ENV{GRAPHMAT_HOME})
+endif ()
+
+if (NOT GRAPHMAT_HOME)
     get_filename_component(CONFIG_PATH config.cmake ABSOLUTE)
-    message(FATAL_ERROR "Before running cmake, please specify $GRAPHMAT_HOME in: ${CONFIG_PATH}")
+    message(FATAL_ERROR "Before running cmake, please specify GRAPHMAT_HOME in environment or in: ${CONFIG_PATH}")
 endif ()
 
 set (CMAKE_CXX_COMPILER icpc)
