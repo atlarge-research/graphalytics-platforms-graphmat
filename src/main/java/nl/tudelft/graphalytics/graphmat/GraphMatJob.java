@@ -23,6 +23,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
+
 import java.io.IOException;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Path;
@@ -42,14 +44,16 @@ import java.util.Map;
 public abstract class GraphMatJob {
 	private static final Logger LOG = LogManager.getLogger(GraphMatJob.class);
 
-	private Configuration config;
-	private String graphPath;
-	private String outputPath;
+	protected final Configuration config;
+	protected final String graphPath;
+	protected final Long2LongMap vertexTranslation;
+	protected String outputPath;
 
-	public GraphMatJob(Configuration config, String graphPath) {
+	public GraphMatJob(Configuration config, String graphPath, Long2LongMap vertexTranslation) {
 		this.config = config;
 		this.graphPath = graphPath;
 		this.outputPath = null;
+		this.vertexTranslation = vertexTranslation;
 	}
 	
 	public void setOutputPath(String file) {

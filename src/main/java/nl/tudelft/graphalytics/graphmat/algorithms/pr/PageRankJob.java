@@ -19,6 +19,7 @@ import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.graphmat.GraphMatJob;	
 
@@ -39,8 +40,8 @@ public final class PageRankJob extends GraphMatJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public PageRankJob(Configuration config, String graphPath, PageRankParameters params) {
-		super(config, graphPath);
+	public PageRankJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, PageRankParameters params) {
+		super(config, graphPath, vertexTranslation);
 		this.params = params;
 	}
 

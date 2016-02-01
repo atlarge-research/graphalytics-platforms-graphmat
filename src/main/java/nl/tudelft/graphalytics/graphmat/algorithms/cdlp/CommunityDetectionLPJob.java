@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.graphmat.GraphMatJob;
@@ -12,8 +13,8 @@ public class CommunityDetectionLPJob extends GraphMatJob {
 
 	private final CommunityDetectionLPParameters params;
 
-	public CommunityDetectionLPJob(Configuration config, String graphPath, CommunityDetectionLPParameters params) {
-		super(config, graphPath);
+	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params) {
+		super(config, graphPath, vertexTranslation);
 		this.params = params;
 	}
 	

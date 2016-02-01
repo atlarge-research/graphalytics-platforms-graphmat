@@ -21,6 +21,8 @@ import nl.tudelft.graphalytics.graphmat.GraphMatJob;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.exec.CommandLine;
 
+import it.unimi.dsi.fastutil.longs.Long2LongMap;
+
 import java.nio.file.Paths;
 import java.util.List;
 
@@ -35,8 +37,8 @@ public final class BreadthFirstSearchJob extends GraphMatJob {
 
 	private final BreadthFirstSearchParameters params;
 
-	public BreadthFirstSearchJob(Configuration config, String graphPath, BreadthFirstSearchParameters params) {
-		super(config, graphPath);
+	public BreadthFirstSearchJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, BreadthFirstSearchParameters params) {
+		super(config, graphPath, vertexTranslation);
 		this.params = params;
 	}
 
@@ -47,6 +49,9 @@ public final class BreadthFirstSearchJob extends GraphMatJob {
 
 	@Override
 	protected void addJobArguments(List<String> args) {
-		args.add(Long.toString(params.getSourceVertex()));
+		long oldSource = params.getSourceVertex();
+		long newSource = vertexTranslation.get(oldSource);
+		
+		args.add(Long.toString(newSource));
 	}
 }

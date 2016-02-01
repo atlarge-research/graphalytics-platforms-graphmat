@@ -71,8 +71,9 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	public static final String MTX_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/graph_convert";
 	
 	private Configuration config;
-	private String intermediateFile;
-	private String outputFile;
+	private String intermediateGraphFile;
+	private String graphFile;
+	private Long2LongMap vertexTranslation;
 
 	public GraphMatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
@@ -89,8 +90,8 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 	public void uploadGraph(Graph graph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", graph.getName());
 
-		if (graph.getNumberOfVertices() > Integer.MAX_VALUE) {
-			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices");
+		if (graph.getNumberOfVertices() > Integer.MAX_VALUE || graph.getNumberOfEdges() > Integer.MAX_VALUE) {
+			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
 		}
 		
 		String dir = config.getString(INTERMEDIATE_DIR_KEY, null);
@@ -112,18 +113,14 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 		}
 
 
-		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
-		List<String> args = new ArrayList<>();
+		// Convert from Graphalytics VE format to intermediate format
+		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
 		
-		// Convert from Graphalytics format to intermediate format
-		args.clear();
-		args.add(graph.getVertexFilePath());
-		args.add(graph.getEdgeFilePath());
-		args.add(intermediateFile);
-		runCommand(cmdFormat, FORMAT_CONVERT_BINARY_NAME, args);
 		
 		// Convert from intermediate format to MTX format
 		boolean isDirected = graph.getGraphFormat().isDirected();
+		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
+		List<String> args = new ArrayList<>();
 		
 		args.clear();
 		args.add("--selfloops=0");
@@ -141,8 +138,8 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
 		
 		// Success! Set paths to intermediate and output files
-		this.intermediateFile = intermediateFile;
-		this.outputFile = outputFile;
+		this.intermediateGraphFile = intermediateFile;
+		this.graphFile = outputFile;
 	}
 
 	@Override
@@ -154,19 +151,19 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(config, outputFile, (BreadthFirstSearchParameters) params);
+				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params);
 				break;
 			case PR:
-				job = new PageRankJob(config, outputFile, (PageRankParameters) params);
+				job = new PageRankJob(config, graphFile, vertexTranslation, (PageRankParameters) params);
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(config, outputFile);
+				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation);
 				break;
 			case CDLP:
-				job = new CommunityDetectionLPJob(config, outputFile, (CommunityDetectionLPParameters) params);
+				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params);
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(config, outputFile);
+				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation);
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
@@ -187,12 +184,12 @@ public final class GraphMatPlatform implements Platform, GranulaAwarePlatform {
 
 	@Override
 	public void deleteGraph(String graphName) {
-		if(!new File(intermediateFile).delete()) {
-			LOG.warn("Failed to delete temporary file '{}'", intermediateFile);
+		if(!new File(intermediateGraphFile).delete()) {
+			LOG.warn("Failed to delete temporary file '{}'", intermediateGraphFile);
 		}
 		
-		if(!new File(outputFile).delete()) {
-			LOG.warn("Failed to delete temporary file '{}'", outputFile);
+		if(!new File(graphFile).delete()) {
+			LOG.warn("Failed to delete temporary file '{}'", graphFile);
 		}
 	}
 	
