@@ -1,7 +1,9 @@
 #include <cstring>
 #include <fstream>
 #include <ostream>
+#include <string>
 #include <sys/time.h>
+#include <vector>
 
 template <typename T>
 void print_graph(const char *filename, const Graph<T>& graph) {
@@ -56,5 +58,30 @@ void set_bit(size_t idx, char* vec) {
 double timer() {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_sec * 1000.0 + tv.tv_usec / 1000.0;
+    return tv.tv_sec + tv.tv_usec / 1000000.0;
+}
+
+static std::vector<std::pair<std::string, double>> timers;
+
+void timer_start() {
+    timers.clear();
+}
+
+void timer_next(std::string name) {
+    timers.push_back(std::make_pair(name, timer()));
+}
+
+void timer_end() {
+    timer_next("end");
+
+    std::cerr << "Timing results:" << std::endl;
+
+    for (size_t i = 0; i < timers.size() - 1; i++) {
+        std::string &name = timers[i].first;
+        double time = timers[i + 1].second - timers[i].second;
+
+        std::cerr << " - "  << name << ": " << time << " sec" <<  std::endl;
+    }
+
+    timers.clear();
 }

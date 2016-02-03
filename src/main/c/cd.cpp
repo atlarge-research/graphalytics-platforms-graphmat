@@ -150,6 +150,7 @@ class CommunityDetectionProgram: public GraphProgram<msg_type, reduce_type, vert
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <niterations> [output file]" << endl;
+        return EXIT_FAILURE;;
     }
 
     char *filename = argv[1];
@@ -159,21 +160,32 @@ int main(int argc, char *argv[]) {
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
-    CommunityDetectionProgram prog;
+    timer_start();
+
+    timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
+
+    timer_next("initialize engine");
     graph.setAllActive();
 
     for (size_t i = 0; i < graph.nvertices; i++) {
         graph.vertexproperty[i] = label_type(i);
     }
 
+    CommunityDetectionProgram prog;
     auto ctx = graph_program_init(prog, graph);
 
-    double before = timer();
+    timer_next("run algorithm");
     run_graph_program(&prog, graph, niterations, &ctx);
-    cout << "run time: " << timer() - before << endl;
 
-    graph_program_clear(ctx);
+    timer_next("print output");
     print_graph(output, graph);
+
+    timer_next("deinitialize engine");
+    graph_program_clear(ctx);
+
+    timer_end();
+
+    return EXIT_SUCCESS;
 }

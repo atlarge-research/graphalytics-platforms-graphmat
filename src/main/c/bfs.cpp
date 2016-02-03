@@ -88,10 +88,13 @@ int main(int argc, char *argv[]) {
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
-    BreadthFirstSearch prog;
+    timer_start();
+
+    timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
+    timer_next("initialize engine");
     if (source_vertex < 0 || source_vertex >= graph.nvertices) {
         cerr << "ERROR: invalid source vertex (not in range [0, " << graph.nvertices-1 << "]" << endl;
         return EXIT_FAILURE;
@@ -99,14 +102,20 @@ int main(int argc, char *argv[]) {
 
     graph.setVertexproperty(source_vertex, vertex_value_type(0));
     graph.setActive(source_vertex);
+
+    BreadthFirstSearch prog;
     auto ctx = graph_program_init(prog, graph);
 
-    double before = timer();
+    timer_next("run algorithm");
     run_graph_program(&prog, graph, -1, &ctx);
-    cout << "run time: " << timer() - before << endl;
 
-    graph_program_clear(ctx);
+    timer_next("print output");
     print_graph(output, graph);
+
+    timer_next("deinitialize engine");
+    graph_program_clear(ctx);
+
+    timer_end();
 
     return EXIT_SUCCESS;
 }

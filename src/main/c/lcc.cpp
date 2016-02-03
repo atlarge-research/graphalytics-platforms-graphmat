@@ -140,6 +140,7 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 int main(int argc, char *argv[]) {
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex>" << endl;
+        return EXIT_FAILURE;
     }
 
     char *filename = argv[1];
@@ -147,10 +148,15 @@ int main(int argc, char *argv[]) {
     char *output = argc > 3 ? argv[3] : NULL;
 
     nthreads = omp_get_max_threads();
+    cout << "num. threads: " << nthreads << endl;
 
+    timer_start();
+
+    timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
+    timer_next("initialize engine");
     for (size_t i = 0; i < graph.nvertices; i++) {
         graph.vertexproperty[i].id = i;
         graph.vertexproperty[i].clustering_coef = 0.0;
@@ -164,18 +170,22 @@ int main(int argc, char *argv[]) {
     auto col_ctx = graph_program_init(col_prog, graph);
     auto cnt_ctx = graph_program_init(cnt_prog, graph);
 
-    double before = timer();
 
-    graph.setAllActive();
+    timer_next("run algorithm 1 (collect neighbors)");
     run_graph_program(&col_prog, graph, 1, &col_ctx);
 
+    timer_next("run algorithm 2 (count triangles)");
     graph.setAllActive();
     run_graph_program(&cnt_prog, graph, 1, &cnt_ctx);
 
-    cout << "run time: " << timer() - before << endl;
+    timer_next("print output");
+    print_graph(output, graph);
 
+    timer_next("deinitialize engine");
     graph_program_clear(col_ctx);
     graph_program_clear(cnt_ctx);
 
-    print_graph(output, graph);
+    timer_end();
+
+    return EXIT_SUCCESS;
 }

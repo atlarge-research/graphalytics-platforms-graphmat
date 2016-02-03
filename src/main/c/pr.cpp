@@ -68,12 +68,15 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         score_type dangling_sum;
         atomic<score_type> next_dangling_sum;
 
-        PageRankProgram(double damping_factor, int nvertices, int ndangling) {
+        PageRankProgram(double damping_factor, int nvertices) {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
-            this->dangling_sum = ndangling / score_type(nvertices);
             this->damping_factor = damping_factor;
             this->nvertices = nvertices;
+        }
+
+        void set_dangling(int ndangling) {
+            this->dangling_sum = ndangling / score_type(nvertices);
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
@@ -124,14 +127,25 @@ int main(int argc, char *argv[]) {
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
+    timer_start();
+
+    timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
+
+    timer_next("initialize engine");
     graph.setAllActive();
 
     DegreeProgram deg_prog;
     auto ctx = graph_program_init(deg_prog, graph);
+
+    PageRankProgram pr_prog(damping_factor, graph.nvertices);
+    auto ctx2 = graph_program_init(pr_prog, graph);
+
+    timer_next("run algorithm 1 (count degree)");
     run_graph_program(&deg_prog, graph, 1, &ctx);
 
+    timer_next("run algorithm 2 (compute PageRank)");
     int ndangling = 0;
 
     for (size_t i = 0; i < graph.nvertices; i++) {
@@ -139,16 +153,17 @@ int main(int argc, char *argv[]) {
         ndangling += (graph.vertexproperty[i].out_degree == 0);
     }
 
-    PageRankProgram pr_prog(damping_factor, graph.nvertices, ndangling);
-    auto ctx2 = graph_program_init(pr_prog, graph);
-
-    double before = timer();
+    pr_prog.set_dangling(ndangling);
     run_graph_program(&pr_prog, graph, niterations, &ctx2);
-    cout << "run time: " << timer() - before << endl;
 
+    timer_next("print output");
+    print_graph(output, graph);
+
+    timer_next("deinitialize engine");
     graph_program_clear(ctx);
     graph_program_clear(ctx2);
-    print_graph(output, graph);
+
+    timer_end();
 
     return EXIT_SUCCESS;
 }
