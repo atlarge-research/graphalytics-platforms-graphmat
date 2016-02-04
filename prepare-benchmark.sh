@@ -38,7 +38,7 @@ fi
 
 
 mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Debug ../src/ -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all)
+(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/ -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all)
 
 if [ $? -ne 0 ]
 then
