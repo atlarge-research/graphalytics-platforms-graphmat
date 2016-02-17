@@ -25,6 +25,18 @@ fi
 # Set the "platform" variable
 export platform="graphmat"
 
+# Set Library jar
+export LIBRARY_JAR=`ls lib/graphalytics-*std*.jar`
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ if ! find lib -name "graphalytics-*granula*.jar" | grep -q '.'; then
+    echo "Granula cannot be enabled due to missing library jar" >&2
+ else
+    export LIBRARY_JAR=`ls lib/graphalytics-*granula*.jar`
+ fi
+fi
+
+
 # Build binaries
 if [ -z $GRAPHMAT_HOME ]; then
     GRAPHMAT_HOME=`awk -F' *= *' '{ if ($1 == "graphmat.home") print $2 }' $config/graphmat.properties`
@@ -36,9 +48,13 @@ if [ -z $GRAPHMAT_HOME ]; then
     exit 1
 fi
 
+mkdir -p bin/standard
+(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
 
-mkdir -p bin
-(cd bin && cmake -DCMAKE_BUILD_TYPE=Release ../src/ -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ mkdir -p bin/granula
+ (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+fi
 
 if [ $? -ne 0 ]
 then
