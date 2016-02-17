@@ -28,4 +28,4 @@ target
 *.iws
 .idea/
 out/
-
+**/target
