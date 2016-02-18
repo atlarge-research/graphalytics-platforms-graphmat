@@ -143,13 +143,12 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
 int main(int argc, char *argv[]) {
     if (argc < 3) {
-        cerr << "usage: " << argv[0] << " <graph file> <source vertex>" << endl;
+        cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
     char *filename = argv[1];
-    int source_vertex = atoi(argv[2]) - 1;
-    char *output = argc > 3 ? argv[3] : NULL;
+    char *output = argc > 2 ? argv[2] : NULL;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
