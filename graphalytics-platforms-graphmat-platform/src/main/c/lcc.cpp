@@ -142,7 +142,7 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
+    if (argc < 2) {
         cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
     }
