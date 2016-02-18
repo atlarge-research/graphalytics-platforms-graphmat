@@ -39,7 +39,7 @@ public class OutputConverter {
 			String line;
 
 			while ((line = r.readLine()) != null) {
-				String[] parts = line.split(" *", 2);
+				String[] parts = line.split(" +", 2);
 
 				if (parts.length == 2) {
 					long vertexId = Long.parseLong(parts[0]);
