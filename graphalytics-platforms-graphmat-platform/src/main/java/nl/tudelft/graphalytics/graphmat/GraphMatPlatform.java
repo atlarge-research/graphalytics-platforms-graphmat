@@ -15,15 +15,30 @@
  */
 package nl.tudelft.graphalytics.graphmat;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.ProcessBuilder.Redirect;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import nl.tudelft.graphalytics.Platform;
 import nl.tudelft.graphalytics.PlatformExecutionException;
-import nl.tudelft.graphalytics.configuration.ConfigurationUtil;
-import nl.tudelft.graphalytics.configuration.InvalidConfigurationException;
-import nl.tudelft.graphalytics.domain.*;
+import nl.tudelft.graphalytics.domain.Algorithm;
+import nl.tudelft.graphalytics.domain.Benchmark;
+import nl.tudelft.graphalytics.domain.Graph;
+import nl.tudelft.graphalytics.domain.NestedConfiguration;
+import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
@@ -35,13 +50,15 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import nl.tudelft.graphalytics.graphmat.reporting.logging.GraphMatLogger;
+import nl.tudelft.pds.granula.modeller.graphmat.job.GraphMat;
+import nl.tudelft.pds.granula.modeller.model.job.JobModel;
 
 /**
  * GraphMat platform integration for the Graphalytics benchmark.
@@ -63,7 +80,7 @@ public class GraphMatPlatform implements Platform {
 	public static String BINARY_DIRECTORY = "./bin/standard";
 	public static final String FORMAT_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/format_convert";
 	public static final String MTX_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/graph_convert";
-	
+
 	private Configuration config;
 	private String intermediateGraphFile;
 	private String graphFile;
@@ -71,7 +88,7 @@ public class GraphMatPlatform implements Platform {
 
 	public GraphMatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
-		
+
 		try {
 			config = new PropertiesConfiguration(PROPERTIES_FILENAME);
 		} catch (Exception e) {
@@ -80,6 +97,29 @@ public class GraphMatPlatform implements Platform {
 		}
 	}
 
+	private String createIntermediateFile(String name, String extension) throws IOException {
+		String dir = config.getString(INTERMEDIATE_DIR_KEY, null);
+
+		if (dir != null) {
+			File f = new File(dir);
+
+			if (!f.isDirectory() && !f.mkdirs()) {
+				throw new IOException("failed to create intermediate directory: " + dir);
+			}
+
+			return f + "/" + name + "." + extension;
+		} else {
+			return File.createTempFile(name, "." + extension).getAbsolutePath();
+		}
+	}
+
+	private void tryDeleteIntermediateFile(String path) {
+		if (!new File(path).delete()) {
+			LOG.warn("failed to delete intermediate file '{}'", path);
+		}
+	}
+
+
 	@Override
 	public void uploadGraph(Graph graph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", graph.getName());
@@ -87,35 +127,19 @@ public class GraphMatPlatform implements Platform {
 		if (graph.getNumberOfVertices() > Integer.MAX_VALUE || graph.getNumberOfEdges() > Integer.MAX_VALUE) {
 			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
 		}
-		
-		String dir = config.getString(INTERMEDIATE_DIR_KEY, null);
-		String intermediateFile;
-		String outputFile;
-		
-		if (dir != null) {
-			File f = new File(dir);
-			
-			if (!f.isDirectory() && !f.mkdirs()) {
-				throw new PlatformExecutionException("failed to create intermediate directory: " + dir);
-			}
 
-			intermediateFile = dir + "/" + graph.getName() + ".txt";
-			outputFile = dir + "/" + graph.getName() + ".mtx";
-		} else {
-			intermediateFile = File.createTempFile(graph.getName(), ".txt").getAbsolutePath();
-			outputFile = File.createTempFile(graph.getName(), ".mtx").getAbsolutePath();
-		}
-
+		String intermediateFile = createIntermediateFile(graph.getName(), ".txt");
+		String outputFile = createIntermediateFile(graph.getName(), ".mtx");
 
 		// Convert from Graphalytics VE format to intermediate format
 		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
-		
-		
+
+
 		// Convert from intermediate format to MTX format
 		boolean isDirected = graph.getGraphFormat().isDirected();
 		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
-		
+
 		args.clear();
 		args.add("--selfloops=0");
 		args.add("--duplicatededges=0");
@@ -130,7 +154,7 @@ public class GraphMatPlatform implements Platform {
 		args.add(intermediateFile);
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
-		
+
 		// Success! Set paths to intermediate and output files
 		this.intermediateGraphFile = intermediateFile;
 		this.graphFile = outputFile;
@@ -162,41 +186,51 @@ public class GraphMatPlatform implements Platform {
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
-		
-		if (benchmark.isOutputRequired()) {
-			job.setOutputPath(benchmark.getOutputPath());
+
+		String intermediateOutputPath = null;
+		boolean outputEnabled = benchmark.isOutputRequired();
+
+		try{
+			if (outputEnabled) {
+				intermediateOutputPath = createIntermediateFile("output", "txt");
+				job.setOutputPath(intermediateOutputPath);
+			}
+
+			job.execute();
+
+			if (outputEnabled) {
+				OutputConverter.parseAndWrite(
+						intermediateOutputPath,
+						benchmark.getOutputPath(),
+						vertexTranslation);
+			}
+		} catch(Exception e) {
+			throw new PlatformExecutionException("failed to execute command", e);
+		} finally {
+			if (intermediateOutputPath != null) {
+				tryDeleteIntermediateFile(intermediateOutputPath);
+			}
 		}
 
-		try {
-			job.execute();
-		} catch(IOException|InterruptedException e) {
-			throw new PlatformExecutionException("failed to execute command", e);
-		}
-			
 		return new PlatformBenchmarkResult(NestedConfiguration.empty());
 	}
 
 	@Override
 	public void deleteGraph(String graphName) {
-		if(!new File(intermediateGraphFile).delete()) {
-			LOG.warn("Failed to delete temporary file '{}'", intermediateGraphFile);
-		}
-		
-		if(!new File(graphFile).delete()) {
-			LOG.warn("Failed to delete temporary file '{}'", graphFile);
-		}
+		tryDeleteIntermediateFile(intermediateGraphFile);
+		tryDeleteIntermediateFile(graphFile);
 	}
-	
+
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
 		String argsString = "";
 		for (String arg: args) {
 			argsString += arg + " ";
 		}
-		
+
 		String cmd = String.format(format, binaryName, argsString);
-		
+
 		LOG.info("running command: {}", cmd);
-		
+
 		ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
 //		pb.redirectErrorStream(true);
 //		pb.redirectError(Redirect.INHERIT);
@@ -212,8 +246,8 @@ public class GraphMatPlatform implements Platform {
 			System.out.println(line);
 		}
 
-
 		int exit = process.waitFor();
+
 		if (exit != 0) {
 			throw new IOException("unexpected error code");
 		}
