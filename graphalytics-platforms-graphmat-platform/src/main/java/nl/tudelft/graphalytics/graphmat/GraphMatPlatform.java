@@ -15,8 +15,10 @@
  */
 package nl.tudelft.graphalytics.graphmat;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.ProcessBuilder.Redirect;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -38,27 +40,11 @@ import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
-import org.apache.commons.configuration.Configuration;
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.PropertiesConfiguration;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import nl.tudelft.graphalytics.graphmat.reporting.logging.GraphMatLogger;
-import nl.tudelft.pds.granula.modeller.graphmat.job.GraphMat;
-import nl.tudelft.pds.granula.modeller.model.job.JobModel;
 
 /**
  * GraphMat platform integration for the Graphalytics benchmark.
