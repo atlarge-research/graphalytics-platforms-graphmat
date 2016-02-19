@@ -44,7 +44,7 @@ public class OutputConverter {
 				if (parts.length == 2) {
 					long vertexId = Long.parseLong(parts[0]);
 
-					p.print(vertexTranslation.get(vertexId));
+					p.print(revVertexTranslation.get(vertexId));
 					p.print(" ");
 					p.print(parts[1]);
 					p.print("\n");
