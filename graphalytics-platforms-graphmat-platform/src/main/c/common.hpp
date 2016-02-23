@@ -44,7 +44,7 @@ bool get_bit(size_t idx, char* vec) {
     return (vec[offset] & mask) != 0;
 }
 
-void set_bit(size_t idx, char* vec) {
+bool set_bit(size_t idx, char* vec) {
     size_t offset = idx >> 3;
     size_t bit = idx & 0x7;
     char mask = 1 << bit;
@@ -52,7 +52,10 @@ void set_bit(size_t idx, char* vec) {
 
     if (!(val & mask)) {
         vec[offset] = val | mask;
+        return true;
     }
+
+    return false;
 }
 
 double timer() {

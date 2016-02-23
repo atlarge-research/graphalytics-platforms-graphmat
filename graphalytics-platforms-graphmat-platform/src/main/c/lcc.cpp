@@ -17,15 +17,15 @@ struct vertex_value_type {
     public:
         int id;
         double clustering_coef;
-        vector<int> neighbors;
-        vector<int> duplicate_neighbors;
+        vector<pair<int, int>> neighbors;
         char *bitvector;
+        char *duplicate_bitvector;
 
         vertex_value_type() {
             id = -1;
             clustering_coef = 0.0;
-            neighbors.clear();
             bitvector = NULL;
+            duplicate_bitvector = NULL;
         }
 
         bool operator!=(const vertex_value_type& other) const {
@@ -67,37 +67,52 @@ class CollectNeighborsProgram: public GraphProgram<collect_msg_type, collect_red
         }
 
         void apply(const collect_reduce_type& total, vertex_value_type& vertex) {
-            vector<int> &vec = vertex.neighbors;
-            vector<int> &dvec = vertex.duplicate_neighbors;
+            if (total.size() < num_neighbors_threshold) {
+                auto vec = total;
+                sort(vec.begin(), vec.end());
 
-            vec = total;
+                auto &nbr = vertex.neighbors;
+                nbr.clear();
 
-            // Remove duplicates from vec and store duplicate in dvec.
-            // This is done by sorting vec, iterating over the
-            // entries and moving duplicate entries to dvec.
-            sort(vec.begin(), vec.end());
-            size_t insert_index = 0;
+                size_t index = 0;
+                while (index < vec.size()) {
+                    int v = vec[index];
+                    size_t count = 1;
 
-            for (size_t i = 1; i < vec.size(); i++) {
-                // New element, move to vec
-                if (vec[i] != vec[insert_index]) {
-                    vec[++insert_index] = vec[i];
+                    while (index + count < vec.size() && vec[index + count] == v) {
+                        count++;
+                    }
+
+                    cout << "push: " << vertex.id << "will " << v << " with " << count << endl;
+
+                    nbr.push_back(make_pair(v, count));
+                    index += count;
                 }
 
-                // Duplicate element, move to dvec
-                else {
-                    dvec.push_back(vec[i]);
+            } else {
+                vertex.bitvector = new char[bitvector_size]();
+                vertex.duplicate_bitvector = new char[bitvector_size]();
+
+                auto &nbr = vertex.neighbors;
+                nbr.clear();
+
+                for (auto it = total.begin(); it != total.end(); it++) {
+                    int v = *it;
+
+                    if (!get_bit(v, vertex.bitvector)) {
+                        set_bit(v, vertex.bitvector);
+                    } else {
+                        set_bit(v, vertex.duplicate_bitvector);
+                        nbr.push_back(make_pair(v, 2));
+                    }
                 }
-            }
 
-            vec.resize(insert_index + 1);
+                for (auto it = total.begin(); it != total.end(); it++) {
+                    int v = *it;
 
-            if (num_neighbors_threshold > 1024) {
-                vertex.bitvector = new char[bitvector_size];
-                memset(vertex.bitvector, 0, bitvector_size);
-
-                for (auto it = vec.begin(); it != vec.end(); it++) {
-                    set_bit(*it, vertex.bitvector);
+                    if (!get_bit(v, vertex.duplicate_bitvector)) {
+                        nbr.push_back(make_pair(v, 1));
+                    }
                 }
             }
         }
@@ -122,14 +137,13 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
             const vertex_value_type &a = vertex;
             const vertex_value_type &b = *msg;
             int tri = 0;
+            bool duplicate_edge;
 
-            bool is_duplicate_edge = a.duplicate_neighbors.size() < b.duplicate_neighbors.size() ?
-                binary_search(a.duplicate_neighbors.begin(), a.duplicate_neighbors.end(), b.id) :
-                binary_search(b.duplicate_neighbors.begin(), b.duplicate_neighbors.end(), a.id);
+            if (a.bitvector == NULL && b.bitvector == NULL) {
+                duplicate_edge = a.neighbors.size() < b.neighbors.size() ?
+                    binary_search(a.neighbors.begin(), a.neighbors.end(), make_pair(b.id, 2)) :
+                    binary_search(b.neighbors.begin(), b.neighbors.end(), make_pair(a.id, 2));
 
-            if (is_duplicate_edge && a.id < b.id) {
-                //
-            } else if (a.bitvector == NULL && b.bitvector == NULL) {
                 auto it_a = a.neighbors.begin();
                 auto it_b = b.neighbors.begin();
 
@@ -137,20 +151,47 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
                 auto end_b = b.neighbors.end();
 
                 while (it_a != end_a && it_b != end_b) {
-                    int delta = *it_a - *it_b;
-                    if (delta == 0) tri++;
+                    int delta = it_a->first - it_b->first;
+
+                    if (delta == 0)
+                    cout << a.id << " - " << b.id << " - " << it_a->first << ": " << it_b->second << endl;
+
+                    if (delta == 0) tri += it_b->second;
                     if (delta <= 0) it_a++;
                     if (delta >= 0) it_b++;
                 }
 
             } else {
-                int pick_a = a.neighbors.size() < b.neighbors.size();
-                auto p = pick_a ? a : b;
-                auto q = pick_a ? b : a;
+                duplicate_edge = a.neighbors.size() < b.neighbors.size() ?
+                    get_bit(b.id, a.duplicate_bitvector) :
+                    get_bit(a.id, b.duplicate_bitvector);
 
-                for (auto it = p.neighbors.begin(); it != p.neighbors.end(); it++) {
-                    tri += get_bit(*it, q.bitvector);
+                if (a.neighbors.size() < b.neighbors.size()) {
+                    for (auto it = a.neighbors.begin(); it != a.neighbors.end(); it++) {
+                        int v = it->first;
+
+                        if (get_bit(v, b.duplicate_bitvector)) {
+                            tri += 2;
+                            cout << a.id << " - " << b.id << " - " << v << ": " << 2 << endl;
+                        } else if (get_bit(v, b.bitvector)) {
+                            tri += 1;
+                            cout << a.id << " - " << b.id << " - " << v << ": " << 1 << endl;
+                        }
+                    }
+                } else {
+                    for (auto it = b.neighbors.begin(); it != b.neighbors.end(); it++) {
+                        int v = it->first;
+
+                        if (get_bit(v, a.bitvector)) {
+                            tri += it->second;
+                            cout << a.id << " - " << b.id << " - " << v << ": " << it->second << endl;
+                        }
+                    }
                 }
+            }
+
+            if (!duplicate_edge) {
+                tri *= 2;
             }
 
             result = tri;
@@ -162,7 +203,8 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
         void apply(const count_reduce_type& total, vertex_value_type& vertex) {
             size_t deg = vertex.neighbors.size();
-            size_t tri = total;
+            size_t tri = total / 4;
+            cout << vertex.id << ": " << tri << endl;
             vertex.clustering_coef = deg > 1 ? tri / (deg * (deg - 1.0)) : 0.0;
         }
 };
