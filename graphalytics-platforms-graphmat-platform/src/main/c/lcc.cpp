@@ -83,8 +83,6 @@ class CollectNeighborsProgram: public GraphProgram<collect_msg_type, collect_red
                         count++;
                     }
 
-                    cout << "push: " << vertex.id << "will " << v << " with " << count << endl;
-
                     nbr.push_back(make_pair(v, count));
                     index += count;
                 }
@@ -153,9 +151,6 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
                 while (it_a != end_a && it_b != end_b) {
                     int delta = it_a->first - it_b->first;
 
-                    if (delta == 0)
-                    cout << a.id << " - " << b.id << " - " << it_a->first << ": " << it_b->second << endl;
-
                     if (delta == 0) tri += it_b->second;
                     if (delta <= 0) it_a++;
                     if (delta >= 0) it_b++;
@@ -172,10 +167,8 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
                         if (get_bit(v, b.duplicate_bitvector)) {
                             tri += 2;
-                            cout << a.id << " - " << b.id << " - " << v << ": " << 2 << endl;
                         } else if (get_bit(v, b.bitvector)) {
                             tri += 1;
-                            cout << a.id << " - " << b.id << " - " << v << ": " << 1 << endl;
                         }
                     }
                 } else {
@@ -184,7 +177,6 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
                         if (get_bit(v, a.bitvector)) {
                             tri += it->second;
-                            cout << a.id << " - " << b.id << " - " << v << ": " << it->second << endl;
                         }
                     }
                 }
@@ -204,7 +196,6 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
         void apply(const count_reduce_type& total, vertex_value_type& vertex) {
             size_t deg = vertex.neighbors.size();
             size_t tri = total / 4;
-            cout << vertex.id << ": " << tri << endl;
             vertex.clustering_coef = deg > 1 ? tri / (deg * (deg - 1.0)) : 0.0;
         }
 };
