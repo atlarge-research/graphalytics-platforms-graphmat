@@ -64,7 +64,7 @@ class WeaklyConnectedComponents: public GraphProgram<msg_type, reduce_type, vert
         }
 
         void apply(const reduce_type& total, vertex_value_type& vertex) {
-            vertex.prev = vertex.prev;
+            vertex.prev = vertex.curr;
             vertex.curr = min(vertex.curr, total);
         }
 };
