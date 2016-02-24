@@ -40,9 +40,9 @@ struct vertex_value_type {
         }
 };
 
-class DegreeProgram: public GraphProgram<int, int, vertex_value_type> {
+class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
     public:
-        DegreeProgram() {
+        OutDegreeProgram() {
             order = IN_EDGES;
             activity = ALL_VERTICES;
         }
@@ -95,22 +95,25 @@ class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
 class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
         double damping_factor;
-        int nvertices;
         score_type dangling_sum;
-        Graph<vertex_value_type>* graph_ref; //pointer to the graph being operated on.
+        Graph<vertex_value_type>& graph;
 
-        PageRankProgram(double damping_factor, int nvertices) {
+        PageRankProgram(Graph<vertex_value_type> &g, double df): graph(g), damping_factor(df) {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
-            this->damping_factor = damping_factor;
-            this->nvertices = nvertices;
         }
 
-        void set_dangling(int ndangling) {
-            this->dangling_sum = ndangling / score_type(nvertices);
-        }
-        void set_graph_pointer(Graph<vertex_value_type> *G) {
-          graph_ref = G;
+        void init() {
+            int ndangling = 0;
+
+            #pragma omp parallel for reduction(+:ndangling)
+            for (size_t i = 0; i < graph.nvertices; i++) {
+                graph.vertexproperty[i].score = 1.0 / graph.nvertices;
+                ndangling += (graph.vertexproperty[i].out_degree == 0);
+            }
+
+
+            dangling_sum = double(ndangling) / graph.nvertices;
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
@@ -127,25 +130,26 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         }
 
         void apply(const reduce_type& total, vertex_value_type& vertex) {
-            vertex.score = (1 - damping_factor) / nvertices
-                         + damping_factor * (total + dangling_sum / nvertices);
+            vertex.score = (1 - damping_factor) / graph.nvertices
+                         + damping_factor * (total + dangling_sum / graph.nvertices);
         }
 
         void do_every_iteration(int it) {
-            //Fix vertices with 0 in and out degrees here. 
-            //We have a pointer to the graph being operated on. 
-
+            //Fix vertices with 0 in and out degrees here.
             score_type next_dangling_sum = 0.0;
+
             #pragma omp parallel for reduction(+:next_dangling_sum)
-            for (size_t i = 0; i < nvertices; i++) {
-              if (graph_ref->vertexproperty[i].out_degree == 0) {
-                next_dangling_sum += graph_ref->vertexproperty[i].score;
-              }
-              if (graph_ref->vertexproperty[i].in_degree == 0) {
-                graph_ref->vertexproperty[i].score = (1 - damping_factor + 
-                                                      damping_factor*dangling_sum) / nvertices;
-              }
+            for (size_t i = 0; i < graph.nvertices; i++) {
+                if (graph.vertexproperty[i].out_degree == 0) {
+                    next_dangling_sum += graph.vertexproperty[i].score;
+                }
+
+                if (graph.vertexproperty[i].in_degree == 0) {
+                    graph.vertexproperty[i].score = (1 - damping_factor +
+                                                damping_factor*dangling_sum) / graph.nvertices;
+                }
             }
+
             dangling_sum = next_dangling_sum;
         }
 };
@@ -186,13 +190,14 @@ int main(int argc, char *argv[]) {
     timer_next("initialize engine");
     graph.setAllActive();
 
-    DegreeProgram deg_prog;
-    auto ctx = graph_program_init(deg_prog, graph);
-    InDegreeProgram in_deg_prog;
-    auto ctx_in = graph_program_init(in_deg_prog, graph);
+    OutDegreeProgram out_deg_prog;
+    auto ctx1 = graph_program_init(out_deg_prog, graph);
 
-    PageRankProgram pr_prog(damping_factor, graph.nvertices);
-    auto ctx2 = graph_program_init(pr_prog, graph);
+    InDegreeProgram in_deg_prog;
+    auto ctx2 = graph_program_init(in_deg_prog, graph);
+
+    PageRankProgram pr_prog(graph, damping_factor);
+    auto ctx3 = graph_program_init(pr_prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -200,21 +205,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm 1 (count degree)");
-    run_graph_program(&deg_prog, graph, 1, &ctx);
-    run_graph_program(&in_deg_prog, graph, 1, &ctx_in);
+    run_graph_program(&out_deg_prog, graph, 1, &ctx1);
+    run_graph_program(&in_deg_prog, graph, 1, &ctx2);
+
+    timer_next("initialize vertices");
+    pr_prog.init();
 
     timer_next("run algorithm 2 (compute PageRank)");
-    int ndangling = 0;
-
-    for (size_t i = 0; i < graph.nvertices; i++) {
-        graph.vertexproperty[i].score = 1.0 / graph.nvertices;
-        ndangling += (graph.vertexproperty[i].out_degree == 0);
-    }
-
-    pr_prog.set_dangling(ndangling);
-    pr_prog.set_graph_pointer(&graph);
-
-    run_graph_program(&pr_prog, graph, niterations, &ctx2);
+    run_graph_program(&pr_prog, graph, niterations, &ctx3);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -233,9 +231,9 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("deinitialize engine");
-    graph_program_clear(ctx);
-    graph_program_clear(ctx_in);
+    graph_program_clear(ctx1);
     graph_program_clear(ctx2);
+    graph_program_clear(ctx3);
 
     timer_end();
 
