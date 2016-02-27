@@ -48,19 +48,18 @@ void print_graph(const char *filename, const Graph<T>& graph) {
             file_stream_all = NULL;
             stream_all = &std::cout;
         }
-// TODO combine mpi-output-* files
-//        for (int i = 0; i < mpi_comm_size; i++) {
-//	    char buffer[1024*1024];
-//            mpi_filename = std::string("mpi-output-") + std::to_string(i);
-//            mpi_stream = new std::ifstream(mpi_filename.c_str());
-//            while (!(*mpi_stream).eof()) {
-//                (*mpi_stream).read(buffer, 1024*1024);
-//                (*stream_all).write(buffer, (*mpi_stream).gcount());
-//            }
-//            mpi_stream->close();
-//            delete mpi_stream;
-//            //std::remove(mpi_filename.c_str());
-//        }
+        for (int i = 0; i < mpi_comm_size; i++) {
+            char buffer[1024];
+            mpi_filename = std::string("mpi-output-") + std::to_string(i);
+            mpi_stream = new std::ifstream(mpi_filename.c_str());
+            while (!(*mpi_stream).eof()) {
+                (*mpi_stream).getline(buffer, 1024);
+                *stream_all << buffer;
+            }
+            mpi_stream->close();
+            delete mpi_stream;
+            //std::remove(mpi_filename.c_str());
+        }
         if (file_stream_all != NULL) {
             if (!file_stream_all->good()) {
                 std::cerr << "failed to write output to file" << endl;

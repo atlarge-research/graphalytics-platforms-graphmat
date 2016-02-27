@@ -19,8 +19,7 @@ include_directories(SYSTEM "${GRAPHMAT_HOME}/src" "${GRAPHMAT_HOME}/GraphMatDist
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -openmp -DUNSORTED -DUNION_PARALLEL_SPA -DINTERSECT_PARALLEL_SPA -DSPGEMM_PARALLEL_SPA -DFSPGEMM_PARALLEL_SPA")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -Wall -pedantic -Wextra -Wno-unused-variable -D__TIMING -D__DEBUG")
-#TODO
-set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo -g")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo")
 
 add_executable (bfs bfs.cpp)
 #add_executable (pr pr.cpp)
