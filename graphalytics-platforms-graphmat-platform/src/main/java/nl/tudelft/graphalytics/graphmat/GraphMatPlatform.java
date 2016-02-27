@@ -137,6 +137,7 @@ public class GraphMatPlatform implements Platform {
 		args.add("--inputedgeweights=0");
 		args.add("--outputedgeweights=2");
 		args.add("--edgeweighttype=0");
+		args.add("--split=16");
 		args.add(intermediateFile);
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
