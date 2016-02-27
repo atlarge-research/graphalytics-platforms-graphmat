@@ -42,20 +42,25 @@ void print_graph(const char *filename, const Graph<T>& graph) {
         int mpi_comm_size;
         MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
         if (strcmp(filename, "-") != 0) {
-            file_stream_all = new std::ofstream(filename, std::ios_base::binary);
+            file_stream_all = new std::ofstream(filename);
             stream_all = file_stream;
         } else {
             file_stream_all = NULL;
             stream_all = &std::cout;
         }
-        for (int i = 0; i < mpi_comm_size; i++) {
-            mpi_filename = std::string("mpi-output-") + std::to_string(i);
-            mpi_stream = new std::ifstream(mpi_filename.c_str(), std::ios_base::binary);
-            (*stream_all) << mpi_stream->rdbuf();
-            mpi_stream->close();
-            delete mpi_stream;
-            std::remove(mpi_filename.c_str());
-        }
+// TODO combine mpi-output-* files
+//        for (int i = 0; i < mpi_comm_size; i++) {
+//	    char buffer[1024*1024];
+//            mpi_filename = std::string("mpi-output-") + std::to_string(i);
+//            mpi_stream = new std::ifstream(mpi_filename.c_str());
+//            while (!(*mpi_stream).eof()) {
+//                (*mpi_stream).read(buffer, 1024*1024);
+//                (*stream_all).write(buffer, (*mpi_stream).gcount());
+//            }
+//            mpi_stream->close();
+//            delete mpi_stream;
+//            //std::remove(mpi_filename.c_str());
+//        }
         if (file_stream_all != NULL) {
             if (!file_stream_all->good()) {
                 std::cerr << "failed to write output to file" << endl;

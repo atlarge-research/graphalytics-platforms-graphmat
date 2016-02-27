@@ -118,6 +118,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    graph.setAllInactive();
     graph.setVertexproperty(source_vertex, vertex_value_type(0));
     graph.setActive(source_vertex);
 
