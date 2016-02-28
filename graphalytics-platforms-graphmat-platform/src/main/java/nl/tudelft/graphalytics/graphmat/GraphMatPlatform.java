@@ -205,7 +205,10 @@ public class GraphMatPlatform implements Platform {
 	@Override
 	public void deleteGraph(String graphName) {
 		tryDeleteIntermediateFile(intermediateGraphFile);
-		tryDeleteIntermediateFile(graphFile);
+		// TODO parametrize graph conversion splits
+		for (int i = 0; i < 16; i++) {
+			tryDeleteIntermediateFile(graphFile + i);
+		}
 	}
 
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
