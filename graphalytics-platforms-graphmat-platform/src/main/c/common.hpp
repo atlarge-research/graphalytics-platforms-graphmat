@@ -52,9 +52,10 @@ void print_graph(const char *filename, const Graph<T>& graph) {
             char buffer[1024];
             mpi_filename = std::string("mpi-output-") + std::to_string(i);
             mpi_stream = new std::ifstream(mpi_filename.c_str());
+            (*mpi_stream).getline(buffer, 1024);
             while (!(*mpi_stream).eof()) {
-                (*mpi_stream).getline(buffer, 1024);
                 (*stream_all) << buffer << std::endl;
+                (*mpi_stream).getline(buffer, 1024);
             }
             mpi_stream->close();
             delete mpi_stream;
