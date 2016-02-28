@@ -54,7 +54,7 @@ void print_graph(const char *filename, const Graph<T>& graph) {
             mpi_stream = new std::ifstream(mpi_filename.c_str());
             while (!(*mpi_stream).eof()) {
                 (*mpi_stream).getline(buffer, 1024);
-                (*stream_all) << buffer;
+                (*stream_all) << buffer << std::endl;
             }
             mpi_stream->close();
             delete mpi_stream;
