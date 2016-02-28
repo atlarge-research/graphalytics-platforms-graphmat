@@ -22,8 +22,8 @@ set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g -Wall -pedantic -Wex
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo")
 
 add_executable (bfs bfs.cpp)
-#add_executable (pr pr.cpp)
-#add_executable (conn conn.cpp)
+add_executable (pr pr.cpp)
+add_executable (conn conn.cpp)
 #add_executable (cd cd.cpp)
 #add_executable (lcc lcc.cpp)
 add_executable (graph_convert ${GRAPHMAT_HOME}/graph_utils/graph_convert.cpp)

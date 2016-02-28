@@ -1,11 +1,11 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -71,6 +71,8 @@ class WeaklyConnectedComponents: public GraphProgram<msg_type, reduce_type, vert
 
 
 int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    GraphPad::GB_Init();
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
@@ -101,7 +103,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("initialize engine");
-    for (size_t i = 0; i < graph.nvertices; i++) {
+    for (size_t i = 1; i <= graph.nvertices; i++) {
         graph.setVertexproperty(i, vertex_value_type(i));
     }
 
@@ -116,7 +118,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, -1, &ctx);
+    run_graph_program(&prog, graph, -1);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -142,5 +144,7 @@ int main(int argc, char *argv[]) {
 #ifdef GRANULA
     cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
+
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }
