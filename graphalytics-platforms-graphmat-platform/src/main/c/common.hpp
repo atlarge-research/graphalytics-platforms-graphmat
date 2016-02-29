@@ -14,16 +14,14 @@ void print_graph(const char *filename, const Graph<T>& graph) {
     std::ostream *stream;
     std::ofstream *file_stream;
 
-    if (strcmp(filename, "-") != 0) {
-        file_stream = new std::ofstream(filename);
-        stream = file_stream;
-    } else {
-        file_stream = NULL;
-        stream = &std::cout;
-    }
+    std::string mpi_filename = std::string("mpi-output-") + std::to_string(GraphPad::global_myrank);
+    file_stream = new std::ofstream(mpi_filename.c_str());
+    stream = file_stream;
 
     for (size_t i = 0; i < graph.nvertices; i++) {
-        (*stream) << i + 1 << " " << graph.vertexproperty[i] << std::endl;
+        if (graph.vertexproperty.node_owner(i+1)) {
+            (*stream) << i + 1 << " " << graph.getVertexproperty(i+1) << std::endl;
+        }
     }
 
     if (file_stream != NULL) {
@@ -34,6 +32,43 @@ void print_graph(const char *filename, const Graph<T>& graph) {
         file_stream->flush();
         file_stream->close();
         delete file_stream;
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    if (GraphPad::global_myrank == 0) {
+        std::ostream *stream_all;
+        std::ofstream *file_stream_all;
+        std::ifstream *mpi_stream;
+        int mpi_comm_size;
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_comm_size);
+        if (strcmp(filename, "-") != 0) {
+            file_stream_all = new std::ofstream(filename);
+            stream_all = file_stream_all;
+        } else {
+            file_stream_all = NULL;
+            stream_all = &std::cout;
+        }
+        for (int i = 0; i < mpi_comm_size; i++) {
+            char buffer[1024];
+            mpi_filename = std::string("mpi-output-") + std::to_string(i);
+            mpi_stream = new std::ifstream(mpi_filename.c_str());
+            (*mpi_stream).getline(buffer, 1024);
+            while (!(*mpi_stream).eof()) {
+                (*stream_all) << buffer << std::endl;
+                (*mpi_stream).getline(buffer, 1024);
+            }
+            mpi_stream->close();
+            delete mpi_stream;
+            std::remove(mpi_filename.c_str());
+        }
+        if (file_stream_all != NULL) {
+            if (!file_stream_all->good()) {
+                std::cerr << "failed to write output to file" << endl;
+            }
+            file_stream_all->flush();
+            file_stream_all->close();
+            delete file_stream_all;
+        }
     }
 }
 

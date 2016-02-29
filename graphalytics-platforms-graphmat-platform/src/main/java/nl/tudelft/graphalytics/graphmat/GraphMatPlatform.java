@@ -163,6 +163,7 @@ public class GraphMatPlatform implements Platform {
 		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
 		args.add("--outputedgeweights=" + (isWeighted ? "1" : "2"));
 		args.add("--edgeweighttype=" + weightType);
+		args.add("--split=16");
 		args.add(intermediateFile);
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
@@ -230,7 +231,10 @@ public class GraphMatPlatform implements Platform {
 	@Override
 	public void deleteGraph(String graphName) {
 		tryDeleteIntermediateFile(intermediateGraphFile);
-		tryDeleteIntermediateFile(graphFile);
+		// TODO parametrize graph conversion splits
+		for (int i = 0; i < 16; i++) {
+			tryDeleteIntermediateFile(graphFile + i);
+		}
 	}
 
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {

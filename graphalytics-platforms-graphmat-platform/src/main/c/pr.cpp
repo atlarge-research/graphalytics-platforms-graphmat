@@ -1,12 +1,12 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <iostream>
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -92,6 +92,36 @@ class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
 
 };
 
+void init_score_and_count_dangling(vertex_value_type* v, int* res, void* param_t) {
+  int N = *(int*)param_t;
+  v->score = 1.0/N;
+  *res = (v->out_degree == 0)?(1):(0);
+}
+
+template <typename T>
+void add(T a, T b, T *c, void* param_t) {
+  *c = a+b;
+}
+
+struct param {
+  double damping_factor;
+  score_type dangling_sum;
+  unsigned int N;
+};
+
+
+void update_zero_degree_vertices(vertex_value_type* v, score_type* res, void* param_t) {
+  struct param* __param = (struct param*)param_t; 
+  *res = 0;
+  if (v->out_degree == 0) {
+    *res = v->score;
+  }
+  if (v->in_degree == 0) {
+    v->score = (1 - __param->damping_factor 
+              + __param->damping_factor*__param->dangling_sum) / __param->N;
+  }
+}
+
 class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
         double damping_factor;
@@ -106,14 +136,15 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         void init() {
             int ndangling = 0;
 
-            #pragma omp parallel for reduction(+:ndangling)
+            /*#pragma omp parallel for reduction(+:ndangling)
             for (size_t i = 0; i < graph.nvertices; i++) {
                 graph.vertexproperty[i].score = 1.0 / graph.nvertices;
                 ndangling += (graph.vertexproperty[i].out_degree == 0);
-            }
+            }*/
+            int N = graph.getNumberOfVertices();
+            graph.applyReduceAllVertices(&ndangling, init_score_and_count_dangling, add, (void*)&N);
 
-
-            dangling_sum = double(ndangling) / graph.nvertices;
+            dangling_sum = double(ndangling) / graph.getNumberOfVertices();
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
@@ -130,15 +161,15 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         }
 
         void apply(const reduce_type& total, vertex_value_type& vertex) {
-            vertex.score = (1 - damping_factor) / graph.nvertices
-                         + damping_factor * (total + dangling_sum / graph.nvertices);
+            vertex.score = (1 - damping_factor) / graph.getNumberOfVertices()
+                         + damping_factor * (total + dangling_sum / graph.getNumberOfVertices());
         }
 
         void do_every_iteration(int it) {
             //Fix vertices with 0 in and out degrees here.
             score_type next_dangling_sum = 0.0;
 
-            #pragma omp parallel for reduction(+:next_dangling_sum)
+            /*#pragma omp parallel for reduction(+:next_dangling_sum)
             for (size_t i = 0; i < graph.nvertices; i++) {
                 if (graph.vertexproperty[i].out_degree == 0) {
                     next_dangling_sum += graph.vertexproperty[i].score;
@@ -148,7 +179,12 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
                     graph.vertexproperty[i].score = (1 - damping_factor +
                                                 damping_factor*dangling_sum) / graph.nvertices;
                 }
-            }
+            }*/
+            struct param param_t;
+            param_t.damping_factor = damping_factor;
+            param_t.dangling_sum = dangling_sum;
+            param_t.N = graph.getNumberOfVertices();
+            graph.applyReduceAllVertices(&next_dangling_sum, update_zero_degree_vertices, add, (void*)&param_t);
 
             dangling_sum = next_dangling_sum;
         }
@@ -156,6 +192,8 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
 
 
 int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <num iterations> [damping factor] [output file]" << endl;
         return EXIT_FAILURE;
@@ -205,14 +243,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm 1 (count degree)");
-    run_graph_program(&out_deg_prog, graph, 1, &ctx1);
-    run_graph_program(&in_deg_prog, graph, 1, &ctx2);
+    run_graph_program(&out_deg_prog, graph, 1);
+    run_graph_program(&in_deg_prog, graph, 1);
 
     timer_next("initialize vertices");
     pr_prog.init();
 
     timer_next("run algorithm 2 (compute PageRank)");
-    run_graph_program(&pr_prog, graph, niterations, &ctx3);
+    run_graph_program(&pr_prog, graph, niterations);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -241,5 +279,6 @@ int main(int argc, char *argv[]) {
     cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
 
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }
