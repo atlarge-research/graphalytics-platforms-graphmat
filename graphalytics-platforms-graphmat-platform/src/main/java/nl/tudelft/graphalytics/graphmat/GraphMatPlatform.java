@@ -40,11 +40,13 @@ import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
+import nl.tudelft.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
 
 /**
  * GraphMat platform integration for the Graphalytics benchmark.
@@ -134,9 +136,11 @@ public class GraphMatPlatform implements Platform {
 		args.add("--outputformat=0");
 		args.add("--inputheader=0");
 		args.add("--outputheader=1");
-		args.add("--inputedgeweights=0");
-		args.add("--outputedgeweights=2");
-		args.add("--edgeweighttype=0");
+		if (!graph.hasEdgeProperties()) {
+			args.add("--inputedgeweights=0");
+			args.add("--outputedgeweights=2");
+		}
+		args.add("--edgeweighttype=1");
 		args.add("--split=16");
 		args.add(intermediateFile);
 		args.add(outputFile);
@@ -169,6 +173,9 @@ public class GraphMatPlatform implements Platform {
 				break;
 			case LCC:
 				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation);
+				break;
+			case SSSP:
+				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");

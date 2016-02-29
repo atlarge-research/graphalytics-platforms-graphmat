@@ -5,8 +5,8 @@
 #include <sys/time.h>
 #include <vector>
 
-template <typename T>
-void print_graph(const char *filename, const Graph<T>& graph) {
+template <typename T, typename E=int>
+void print_graph(const char *filename, const Graph<T, E>& graph) {
     if (filename == NULL || strlen(filename) == 0) {
         return;
     }
