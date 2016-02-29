@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("initialize engine");
-    for (size_t i = 0; i < graph.nvertices; i++) {
+    for (size_t i = 1; i <= graph.nvertices; i++) {
         graph.setVertexproperty(i, vertex_value_type(i));
     }
 
