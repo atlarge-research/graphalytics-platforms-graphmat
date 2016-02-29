@@ -1,11 +1,10 @@
-#include "GraphMatRuntime.cpp"
-
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
 
+#include "GraphMatRuntime.cpp"
 #include "common.hpp"
 
 #ifdef GRANULA
@@ -14,23 +13,24 @@
 
 using namespace std;
 
-typedef uint32_t depth_type;
-typedef depth_type msg_type;
-typedef depth_type reduce_type;
+typedef double distance_type;
+typedef distance_type msg_type;
+typedef distance_type reduce_type;
+typedef distance_type edge_value_type;
 
 struct vertex_value_type {
     public:
-        depth_type prev;
-        depth_type curr;
+        distance_type prev;
+        distance_type curr;
 
         vertex_value_type() {
-            prev = numeric_limits<depth_type>::max();
-            curr = numeric_limits<depth_type>::max();
+            prev = numeric_limits<distance_type>::max();
+            curr = numeric_limits<distance_type>::max();
         }
 
-        vertex_value_type(depth_type d) {
+        vertex_value_type(distance_type d) {
             curr = d;
-            prev = numeric_limits<depth_type>::max();
+            prev = numeric_limits<distance_type>::max();
         }
 
         bool operator!= (const vertex_value_type& other) const {
@@ -38,19 +38,19 @@ struct vertex_value_type {
         }
 
         friend ostream& operator<< (ostream& stream, const vertex_value_type &v) {
-            if (v.curr != numeric_limits<depth_type>::max()) {
+            if (v.curr != numeric_limits<distance_type>::max()) {
                 stream << v.curr;
             } else {
-                stream << numeric_limits<int64_t>::max();
+                stream << "inf";
             }
 
             return stream;
         }
 };
 
-class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
+class SingleSourceShortestPaths: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
     public:
-        BreadthFirstSearch() {
+        SingleSourceShortestPaths() {
             //
         }
 
@@ -59,21 +59,21 @@ class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_valu
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
-            msg = vertex.curr + 1;
+            msg = vertex.curr;
             return vertex.curr != vertex.prev;
+        }
+
+        void process_message(const msg_type& msg, const edge_value_type edge, const vertex_value_type& vertex, reduce_type& result) const {
+            result = msg + edge;
         }
 
         void reduce_function(reduce_type& total, const reduce_type& partial) const {
             total = min(total, partial);
         }
 
-        void process_message(const msg_type& msg, const int edge, const vertex_value_type& vertex, reduce_type& result) const {
-            result = msg;
-        }
-
-        void apply(const reduce_type& msg, vertex_value_type& vertex) {
+        void apply(const reduce_type& total, vertex_value_type& vertex) {
             vertex.prev = vertex.curr;
-            vertex.curr = min(vertex.curr, msg);
+            vertex.curr = min(vertex.curr, total);
         }
 };
 
@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
     timer_start();
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    Graph<vertex_value_type, edge_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
     graph.setVertexproperty(source_vertex, vertex_value_type(0));
     graph.setActive(source_vertex);
 
-    BreadthFirstSearch prog;
+    SingleSourceShortestPaths prog;
     auto ctx = graph_program_init(prog, graph);
 
 #ifdef GRANULA
