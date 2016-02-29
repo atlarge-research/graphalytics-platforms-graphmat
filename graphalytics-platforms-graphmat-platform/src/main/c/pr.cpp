@@ -92,10 +92,10 @@ class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
 
 };
 
-void init_score_and_count_dangling(vertex_value_type v, int* res, void* param_t) {
+void init_score_and_count_dangling(vertex_value_type* v, int* res, void* param_t) {
   int N = *(int*)param_t;
-  v.score = 1.0/N;
-  *res = (v.out_degree == 0)?(1):(0);
+  v->score = 1.0/N;
+  *res = (v->out_degree == 0)?(1):(0);
 }
 
 template <typename T>
@@ -110,14 +110,14 @@ struct param {
 };
 
 
-void update_zero_degree_vertices(vertex_value_type v, score_type* res, void* param_t) {
+void update_zero_degree_vertices(vertex_value_type* v, score_type* res, void* param_t) {
   struct param* __param = (struct param*)param_t; 
   *res = 0;
-  if (v.out_degree == 0) {
-    *res = v.score;
+  if (v->out_degree == 0) {
+    *res = v->score;
   }
-  if (v.in_degree == 0) {
-    v.score = (1 - __param->damping_factor 
+  if (v->in_degree == 0) {
+    v->score = (1 - __param->damping_factor 
               + __param->damping_factor*__param->dangling_sum) / __param->N;
   }
 }
@@ -184,7 +184,7 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
             param_t.damping_factor = damping_factor;
             param_t.dangling_sum = dangling_sum;
             param_t.N = graph.getNumberOfVertices();
-            graph.applyReduceAllVertices(&next_dangling_sum, update_zero_degree_vertices, add, &param_t);
+            graph.applyReduceAllVertices(&next_dangling_sum, update_zero_degree_vertices, add, (void*)&param_t);
 
             dangling_sum = next_dangling_sum;
         }
