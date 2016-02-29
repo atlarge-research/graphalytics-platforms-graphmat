@@ -1,11 +1,11 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -79,36 +79,39 @@ class SingleSourceShortestPaths: public GraphProgram<msg_type, reduce_type, vert
 
 
 int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
+    bool is_master = GraphPad::global_myrank;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]) - 1;
     char *output = argc > 3 ? argv[3] : NULL;
 
-    cout << "source vertex: " << source_vertex + 1 << endl;
+    if (is_master) cout << "source vertex: " << source_vertex << endl;
 
     nthreads = omp_get_max_threads();
-    cout << "num. threads: " << nthreads << endl;
+    if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
-    cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
     granula::operation loadGraph("GraphMat", "Id.Unique", "LoadGraph", "Id.Unique");
-    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
 
-    timer_start();
+    timer_start(is_master);
 
     timer_next("load graph");
     Graph<vertex_value_type, edge_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
-    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("initialize engine");
@@ -125,26 +128,26 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
-    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("run algorithm");
     run_graph_program(&prog, graph, -1, &ctx);
 
 #ifdef GRANULA
-    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
 #ifdef GRANULA
     granula::operation offloadGraph("GraphMat", "Id.Unique", "OffloadGraph", "Id.Unique");
-    cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("print output");
     print_graph(output, graph);
 
 #ifdef GRANULA
-    cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
 
@@ -154,8 +157,9 @@ int main(int argc, char *argv[]) {
     timer_end();
 
 #ifdef GRANULA
-    cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
 
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }

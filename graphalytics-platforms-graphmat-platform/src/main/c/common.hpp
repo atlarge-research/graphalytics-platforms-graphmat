@@ -5,8 +5,8 @@
 #include <sys/time.h>
 #include <vector>
 
-template <typename T>
-void print_graph(const char *filename, const Graph<T>& graph) {
+template <typename V, typename E>
+void print_graph(const char *filename, const Graph<V, E>& graph) {
     if (filename == NULL || strlen(filename) == 0) {
         return;
     }
@@ -99,27 +99,33 @@ double timer() {
     return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
+static bool timer_enabled;
 static std::vector<std::pair<std::string, double>> timers;
 
-void timer_start() {
+void timer_start(bool flag=true) {
+    timer_enabled = flag;
     timers.clear();
 }
 
 void timer_next(std::string name) {
-    timers.push_back(std::make_pair(name, timer()));
+    if (timer_enabled) {
+        timers.push_back(std::make_pair(name, timer()));
+    }
 }
 
 void timer_end() {
     timer_next("end");
 
-    std::cerr << "Timing results:" << std::endl;
+    if (timer_enabled) {
+        std::cerr << "Timing results:" << std::endl;
 
-    for (size_t i = 0; i < timers.size() - 1; i++) {
-        std::string &name = timers[i].first;
-        double time = timers[i + 1].second - timers[i].second;
+        for (size_t i = 0; i < timers.size() - 1; i++) {
+            std::string &name = timers[i].first;
+            double time = timers[i + 1].second - timers[i].second;
 
-        std::cerr << " - "  << name << ": " << time << " sec" <<  std::endl;
+            std::cerr << " - "  << name << ": " << time << " sec" <<  std::endl;
+        }
+
+        timers.clear();
     }
-
-    timers.clear();
 }
