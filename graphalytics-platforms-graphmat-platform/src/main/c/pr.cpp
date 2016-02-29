@@ -38,6 +38,10 @@ struct vertex_value_type {
             stream << v.score;
             return stream;
         }
+
+        score_type get_output() {
+            return score;
+        }
 };
 
 class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
@@ -263,7 +267,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, score_type>(output, graph, MPI_DOUBLE);
 
 #ifdef GRANULA
     if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

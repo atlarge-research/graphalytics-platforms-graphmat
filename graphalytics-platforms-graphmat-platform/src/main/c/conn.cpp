@@ -40,6 +40,10 @@ struct vertex_value_type {
             stream << v.curr;
             return stream;
         }
+
+        component_type get_output() {
+            return curr;
+        }
 };
 
 
@@ -131,7 +135,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, component_type>(output, graph, MPI_INT);
 
 #ifdef GRANULA
     if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
