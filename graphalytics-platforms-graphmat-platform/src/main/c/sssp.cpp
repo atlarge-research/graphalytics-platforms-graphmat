@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::global_myrank;
+    bool is_master = GraphPad::global_myrank == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]) - 1;
     char *output = argc > 3 ? argv[3] : NULL;
