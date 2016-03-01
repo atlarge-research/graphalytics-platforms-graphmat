@@ -66,7 +66,7 @@ void print_graph(const char *filename, const Graph<T, E>& graph, MPI_Datatype mp
     MPI_Gatherv(property_buf_send, nodes, mpi_datatype, property_buf_recv, recv_counts, displs, mpi_datatype, 0, MPI_COMM_WORLD);
     if (GraphPad::global_myrank == 0) {
         for (int i = 0; i < nodes_sum; i++) {
-            (*stream) << id_buf_recv[i] << " " << property_buf_recv[i] << std::endl;
+            (*stream) << id_buf_recv[i] << " " << T(property_buf_recv[i]) << std::endl;
         }
 
         free(recv_counts);
