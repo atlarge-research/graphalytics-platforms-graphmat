@@ -43,6 +43,10 @@ struct vertex_value_type {
 
             return stream;
         }
+
+        depth_type get_output() {
+            return curr;
+        }
 };
 
 class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
@@ -134,7 +138,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, edge_value_type, depth_type>(output, graph, MPI_DOUBLE);
 
 #ifdef GRANULA
     if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

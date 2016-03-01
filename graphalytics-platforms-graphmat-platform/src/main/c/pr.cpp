@@ -30,6 +30,10 @@ struct vertex_value_type {
             in_degree = 0;
         }
 
+        vertex_value_type(score_type score_out) {
+            score = score_out;
+        }
+
         bool operator!=(const vertex_value_type& other) const {
             return !(out_degree == other.out_degree && score == other.score);
         }
@@ -37,6 +41,10 @@ struct vertex_value_type {
         friend ostream& operator<<(ostream& stream, const vertex_value_type &v) {
             stream << v.score;
             return stream;
+        }
+
+        score_type get_output() {
+            return score;
         }
 };
 
@@ -263,7 +271,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, score_type>(output, graph, MPI_DOUBLE);
 
 #ifdef GRANULA
     if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

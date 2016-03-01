@@ -37,10 +37,14 @@ struct vertex_value_type {
             if (v.curr != numeric_limits<depth_type>::max()) {
                 stream << v.curr;
             } else {
-                stream << numeric_limits<int64_t>::max();
+                stream << "inf";
             }
 
             return stream;
+        }
+
+        depth_type get_output() {
+            return curr;
         }
 };
 
@@ -149,7 +153,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, depth_type>(output, graph, MPI_UNSIGNED);
 
 #ifdef GRANULA
     if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
