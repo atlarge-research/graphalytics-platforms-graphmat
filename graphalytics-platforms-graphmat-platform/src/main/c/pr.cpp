@@ -30,6 +30,10 @@ struct vertex_value_type {
             in_degree = 0;
         }
 
+        vertex_value_type(score_type score_out) {
+            score = score_out;
+        }
+
         bool operator!=(const vertex_value_type& other) const {
             return !(out_degree == other.out_degree && score == other.score);
         }
