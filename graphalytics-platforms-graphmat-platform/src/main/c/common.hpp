@@ -37,7 +37,7 @@ void print_graph(const char *filename, const Graph<T, E>& graph, MPI_Datatype mp
         displs = (int *)malloc(mpi_size * sizeof(int));
     }
     for (int i = 1; i <= graph.nvertices; i++) {
-        if (graph.vertexproperty.node_owner(i)) {
+        if (graph.vertexNodeOwner(i)) {
             nodes++;
         }
     }
@@ -55,7 +55,7 @@ void print_graph(const char *filename, const Graph<T, E>& graph, MPI_Datatype mp
     }
     nodes = 0;
     for (int i = 1; i <= graph.nvertices; i++) {
-        if (graph.vertexproperty.node_owner(i)) {
+        if (graph.vertexNodeOwner(i)) {
             id_buf_send[nodes] = i;
             T vertex_property = graph.getVertexproperty(i);
             property_buf_send[nodes] = vertex_property.get_output();
