@@ -37,7 +37,7 @@ struct vertex_value_type {
             if (v.curr != numeric_limits<depth_type>::max()) {
                 stream << v.curr;
             } else {
-                stream << "inf";
+                stream << numeric_limits<int64_t>::max(); 
             }
 
             return stream;
