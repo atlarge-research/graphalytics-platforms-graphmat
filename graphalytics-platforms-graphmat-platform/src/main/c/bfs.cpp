@@ -84,10 +84,10 @@ int main(int argc, char *argv[]) {
     }
 
     char *filename = argv[1];
-    int source_vertex = atoi(argv[2]) - 1;
+    int source_vertex = atoi(argv[2]);
     char *output = argc > 3 ? argv[3] : NULL;
 
-    cout << "source vertex: " << source_vertex + 1 << endl;
+    cout << "source vertex: " << source_vertex << endl;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;

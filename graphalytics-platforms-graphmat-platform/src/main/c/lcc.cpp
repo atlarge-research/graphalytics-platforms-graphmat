@@ -232,9 +232,9 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("initialize engine");
-    for (size_t i = 0; i < graph.nvertices; i++) {
-        graph.vertexproperty[i].id = i;
-        graph.vertexproperty[i].clustering_coef = 0.0;
+    for (size_t i = 1; i <= graph.nvertices; i++) {
+        graph.getVertexproperty(i).id = i;
+        graph.getVertexproperty(i).clustering_coef = 0.0;
     }
 
     graph.setAllActive();
