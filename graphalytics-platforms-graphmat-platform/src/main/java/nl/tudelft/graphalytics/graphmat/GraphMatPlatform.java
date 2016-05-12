@@ -40,10 +40,14 @@ import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
+import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import nl.tudelft.graphalytics.domain.graph.PropertyList;
+import nl.tudelft.graphalytics.domain.graph.PropertyType;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
+import nl.tudelft.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
 
 /**
@@ -120,6 +124,32 @@ public class GraphMatPlatform implements Platform {
 		// Convert from Graphalytics VE format to intermediate format
 		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
 
+		// Check if graph has weights
+		boolean isWeighted = false;
+		int weightType = 0;
+
+		if (graph.hasEdgeProperties()) {
+			PropertyList pl = graph.getEdgeProperties();
+
+			if (pl.size() != 1) {
+				throw new IllegalArgumentException(
+						"GraphMat does not support more than one property");
+			}
+
+			PropertyType t = pl.get(0).getType();
+
+			if (t.equals(PropertyType.INTEGER)) {
+				weightType = 0;
+			}  else if (t.equals(PropertyType.REAL)) {
+				weightType = 1;
+			} else {
+				throw new IllegalArgumentException(
+						"GraphMat does not support properties of type: " + t);
+			}
+
+			isWeighted = true;
+		}
+
 
 		// Convert from intermediate format to MTX format
 		boolean isDirected = graph.getGraphFormat().isDirected();
@@ -134,9 +164,9 @@ public class GraphMatPlatform implements Platform {
 		args.add("--outputformat=0");
 		args.add("--inputheader=0");
 		args.add("--outputheader=1");
-		args.add("--inputedgeweights=0");
-		args.add("--outputedgeweights=2");
-		args.add("--edgeweighttype=0");
+		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
+		args.add("--outputedgeweights=" + (isWeighted ? "1" : "2"));
+		args.add("--edgeweighttype=" + weightType);
 		args.add(intermediateFile);
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
@@ -168,6 +198,9 @@ public class GraphMatPlatform implements Platform {
 				break;
 			case LCC:
 				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation);
+				break;
+			case SSSP:
+				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
