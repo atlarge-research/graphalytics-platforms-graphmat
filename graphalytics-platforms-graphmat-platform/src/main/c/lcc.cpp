@@ -142,13 +142,16 @@ typedef const vertex_value_type* count_msg_type;
 
 class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
 
+  private:
+    int directedFactor;
+
   public:
     int BVLENGTH;
 
-  CountTrianglesProgram(int maxvertices) {
+  CountTrianglesProgram(int maxvertices, int isDirected) {
     this->order = ALL_EDGES;
     BVLENGTH = (maxvertices+31)/32 + 32; //32 for safety
-
+    this->directedFactor = isDirected ? 1 : 2;
   }
 
   void reduce_function(count_reduce_type& v, const count_reduce_type& w) const {
@@ -207,20 +210,21 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
   void apply(const count_reduce_type& message_out, vertex_value_type& vertexprop) {
     vertexprop.triangles = message_out;
     int deg = vertexprop.all_neighbors.size();
-    vertexprop.clustering_coef = (deg > 1)?(2.0*(double)message_out/(double)(deg*(deg-1))):(0.0);
+    vertexprop.clustering_coef = (deg > 1)?((double)message_out/(double)(deg*(deg-1)*this->directedFactor)):(0.0);
   }
 
 };
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
+    if (argc < 3) {
+        cerr << "usage: " << argv[0] << " <graph file> <isDirected> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
     char *filename = argv[1];
-    char *output = argc > 2 ? argv[2] : NULL;
+    int isDirected = atoi(argv[2]);
+    char *output = argc > 3 ? argv[3] : NULL;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
@@ -254,7 +258,7 @@ int main(int argc, char *argv[]) {
 
     CollectNeighborsOutProgram col_prog_out(graph.nvertices);
     CollectNeighborsInProgram col_prog_in(graph.nvertices);
-    CountTrianglesProgram cnt_prog(graph.nvertices);
+    CountTrianglesProgram cnt_prog(graph.nvertices, isDirected);
 
     auto col_ctx_out = graph_program_init(col_prog_out, graph);
     auto col_ctx_in = graph_program_init(col_prog_in, graph);
