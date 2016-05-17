@@ -13,191 +13,203 @@
 
 using namespace std;
 
+
 struct vertex_value_type {
-    public:
-        int id;
-        double clustering_coef;
-        vector<pair<int, int>> neighbors;
-        char *bitvector;
-        char *duplicate_bitvector;
+  public:
+    int id;
+    int triangles;
+    std::vector<int> all_neighbors;
+    std::vector<int> out_neighbors;
+    double clustering_coef;
+    int* bitvector;
 
-        vertex_value_type() {
-            id = -1;
-            clustering_coef = 0.0;
-            bitvector = NULL;
-            duplicate_bitvector = NULL;
-        }
-
-        bool operator!=(const vertex_value_type& other) const {
-            return other.id != id;
-        }
-
-        friend ostream& operator<<(ostream& stream, const vertex_value_type &v) {
+  public:
+    vertex_value_type() {
+      id = -1;
+      triangles = 0;
+      all_neighbors.clear();
+      out_neighbors.clear();
+      bitvector = NULL;
+      clustering_coef = 0.0;
+    }
+    bool operator!=(const vertex_value_type& t) const {
+      return (t.triangles != this->triangles); //dummy
+    }
+    ~vertex_value_type() {
+      all_neighbors.clear();
+      out_neighbors.clear();
+      triangles = 0;
+    }
+    friend ostream& operator<<(ostream& stream, const vertex_value_type &v) {
+            //stream << v.triangles << " "<< v.out_neighbors.size() << " " << v.all_neighbors.size() << " " << v.clustering_coef;
             stream << v.clustering_coef;
             return stream;
         }
+
 };
 
 typedef vector<int> collect_reduce_type;
 typedef int collect_msg_type;
 
-class CollectNeighborsProgram: public GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
-    public:
-        const int num_neighbors_threshold = 1024;
-        int bitvector_size;
 
-        CollectNeighborsProgram(int nvertices) {
-            order = ALL_EDGES;
-            activity = ALL_VERTICES;
-            bitvector_size = nvertices / sizeof(char) + 1; // +1 for safety
-        }
+class CollectNeighborsOutProgram: public GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
 
-        bool send_message(const vertex_value_type& vertex, collect_msg_type& msg) const {
-            msg = vertex.id;
-            return true;
-        }
+  public:
+      int BVLENGTH;
 
-        void process_message(const collect_msg_type& msg, const int edge, const vertex_value_type& vertex, collect_reduce_type& result) const {
-            result.clear();
-            result.push_back(msg);
-        }
 
-        void reduce_function(collect_reduce_type& total, const collect_reduce_type& partial) const {
-            total.insert(total.end(), partial.cbegin(), partial.cend());
-        }
+  CollectNeighborsOutProgram(int maxvertices) {
+    this->order = IN_EDGES;
+    BVLENGTH = (maxvertices+31)/32 + 32; //32 for safety
+  }
 
-        void apply(const collect_reduce_type& total, vertex_value_type& vertex) {
-            if (total.size() < num_neighbors_threshold) {
-                auto vec = total;
-                sort(vec.begin(), vec.end());
+  void reduce_function(collect_reduce_type& a, const collect_reduce_type& b) const {
+    assert(b.size() == 1);
+    a.push_back(b[0]);
+  }
 
-                auto &nbr = vertex.neighbors;
-                nbr.clear();
+  void process_message(const collect_msg_type& message, const int edge_val, const vertex_value_type& vertexprop, collect_reduce_type& res) const {
+    res.clear(); 
+    res.push_back(message);
+  }
+  bool send_message(const vertex_value_type& vertexprop, collect_msg_type& message) const {
+    message = vertexprop.id;
+    return true;
+  }
+  void apply(const collect_reduce_type& message_out, vertex_value_type& vertexprop) {
+    vertexprop.all_neighbors = message_out;
+    vertexprop.out_neighbors = message_out;
 
-                size_t index = 0;
-                while (index < vec.size()) {
-                    int v = vec[index];
-                    size_t count = 1;
+    /*if (vertexprop.neighbors.size() > 1024) {
+      vertexprop.bitvector = new int[BVLENGTH];
+      for (auto it = vertexprop.neighbors.begin(); it != vertexprop.neighbors.end(); ++it) {
+        set_bit(*it, (char*)vertexprop.bitvector);
+      }
+    } else {
+      std::sort(vertexprop.neighbors.begin(), vertexprop.neighbors.end());
+    }*/
+  }
 
-                    while (index + count < vec.size() && vec[index + count] == v) {
-                        count++;
-                    }
+};
+class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
 
-                    nbr.push_back(make_pair(v, count));
-                    index += count;
-                }
+  public:
+      int BVLENGTH;
 
-            } else {
-                vertex.bitvector = new char[bitvector_size]();
-                vertex.duplicate_bitvector = new char[bitvector_size]();
 
-                auto &nbr = vertex.neighbors;
-                nbr.clear();
+  CollectNeighborsInProgram(int maxvertices) {
+    this->order = OUT_EDGES;
+    BVLENGTH = (maxvertices+31)/32 + 32; //32 for safety
+  }
 
-                for (auto it = total.begin(); it != total.end(); it++) {
-                    int v = *it;
+  void reduce_function(collect_reduce_type& a, const collect_reduce_type& b) const {
+    assert(b.size() == 1);
+    a.push_back(b[0]);
+  }
 
-                    if (!get_bit(v, vertex.bitvector)) {
-                        set_bit(v, vertex.bitvector);
-                    } else {
-                        set_bit(v, vertex.duplicate_bitvector);
-                        nbr.push_back(make_pair(v, 2));
-                    }
-                }
+  void process_message(const collect_msg_type& message, const int edge_val, const vertex_value_type& vertexprop, collect_reduce_type& res) const {
+    res.clear(); 
+    res.push_back(message);
+  }
+  bool send_message(const vertex_value_type& vertexprop, collect_msg_type& message) const {
+    message = vertexprop.id;
+    return true;
+  }
+  void apply(const collect_reduce_type& message_out, vertex_value_type& vertexprop) {
+    std::sort(vertexprop.out_neighbors.begin(), vertexprop.out_neighbors.end());
 
-                for (auto it = total.begin(); it != total.end(); it++) {
-                    int v = *it;
+    auto& all_neighbors = vertexprop.all_neighbors;
+    all_neighbors.insert(all_neighbors.end(), message_out.begin(), message_out.end());
 
-                    if (!get_bit(v, vertex.duplicate_bitvector)) {
-                        nbr.push_back(make_pair(v, 1));
-                    }
-                }
-            }
-        }
+    std::sort(all_neighbors.begin(), all_neighbors.end());
+    auto last = unique(all_neighbors.begin(), all_neighbors.end());
+    all_neighbors.erase(last, all_neighbors.end());
+
+    /*if (vertexprop.neighbors.size() > 1024) {
+      vertexprop.bitvector = new int[BVLENGTH];
+      for (auto it = vertexprop.neighbors.begin(); it != vertexprop.neighbors.end(); ++it) {
+        set_bit(*it, (char*)vertexprop.bitvector);
+      }
+    } else {
+      std::sort(vertexprop.neighbors.begin(), vertexprop.neighbors.end());
+    }*/
+  }
+
 };
 
 typedef int count_reduce_type;
 typedef const vertex_value_type* count_msg_type;
 
 class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
-    public:
-        CountTrianglesProgram() {
-            order = ALL_EDGES;
-            activity = ALL_VERTICES;
+
+  public:
+    int BVLENGTH;
+
+  CountTrianglesProgram(int maxvertices) {
+    this->order = ALL_EDGES;
+    BVLENGTH = (maxvertices+31)/32 + 32; //32 for safety
+
+  }
+
+  void reduce_function(count_reduce_type& v, const count_reduce_type& w) const {
+    v += w;
+  }
+
+  void process_message(const count_msg_type& message, const int edge_val, const vertex_value_type& vertexprop, count_reduce_type& res) const {
+    count_reduce_type tri = 0;
+    const vertex_value_type& neighbor = *message;
+    
+    if (neighbor.bitvector == NULL && vertexprop.bitvector == NULL) {
+      int it1 = 0, it2 = 0;
+      int it1_end = neighbor.out_neighbors.size();
+      int it2_end = vertexprop.all_neighbors.size();
+
+      while (it1 != it1_end && it2 != it2_end){
+        if (neighbor.out_neighbors[it1] == vertexprop.all_neighbors[it2]) {
+          tri++;
+          ++it1; ++it2;
+        } else if (neighbor.out_neighbors[it1] < vertexprop.all_neighbors[it2]) {
+          ++it1;
+        } else {
+          ++it2;
         }
+      } 
+      res = tri;
+      return;
 
-        bool send_message(const vertex_value_type& vertex, count_msg_type& msg) const {
-            msg = &vertex;
-            return true;
-        }
+    } 
 
-        void process_message(const count_msg_type& msg, const int edge, const vertex_value_type& vertex, count_reduce_type& result) const {
-            const vertex_value_type &a = vertex;
-            const vertex_value_type &b = *msg;
-            int tri = 0;
-            bool duplicate_edge;
+    /*else {
+      int const* bv;
+      std::vector<int>::const_iterator itb, ite;
 
-            if (a.bitvector == NULL && b.bitvector == NULL) {
-                duplicate_edge = a.neighbors.size() < b.neighbors.size() ?
-                    binary_search(a.neighbors.begin(), a.neighbors.end(), make_pair(b.id, 2)) :
-                    binary_search(b.neighbors.begin(), b.neighbors.end(), make_pair(a.id, 2));
+      if (message.bitvector != NULL) { 
+        bv = message.bitvector; 
+        itb = vertexprop.neighbors.begin(); 
+        ite = vertexprop.neighbors.end(); 
+      } else { 
+        bv = vertexprop.bitvector; 
+        itb = message.neighbors.begin(); 
+        ite = message.neighbors.end(); 
+      }
+      for (auto it = itb; it != ite; ++it) {
+        res += get_bitvector(*it, bv);
+      }
+    }*/
 
-                auto it_a = a.neighbors.begin();
-                auto it_b = b.neighbors.begin();
+  }
 
-                auto end_a = a.neighbors.end();
-                auto end_b = b.neighbors.end();
+  bool send_message(const vertex_value_type& vertexprop, count_msg_type& message) const {
+    message = &vertexprop;
+    return true;
+  }
 
-                while (it_a != end_a && it_b != end_b) {
-                    int delta = it_a->first - it_b->first;
+  void apply(const count_reduce_type& message_out, vertex_value_type& vertexprop) {
+    vertexprop.triangles = message_out;
+    int deg = vertexprop.all_neighbors.size();
+    vertexprop.clustering_coef = (deg > 1)?(2.0*(double)message_out/(double)(deg*(deg-1))):(0.0);
+  }
 
-                    if (delta == 0) tri += it_b->second;
-                    if (delta <= 0) it_a++;
-                    if (delta >= 0) it_b++;
-                }
-
-            } else {
-                duplicate_edge = a.neighbors.size() < b.neighbors.size() ?
-                    get_bit(b.id, a.duplicate_bitvector) :
-                    get_bit(a.id, b.duplicate_bitvector);
-
-                if (a.neighbors.size() < b.neighbors.size()) {
-                    for (auto it = a.neighbors.begin(); it != a.neighbors.end(); it++) {
-                        int v = it->first;
-
-                        if (get_bit(v, b.duplicate_bitvector)) {
-                            tri += 2;
-                        } else if (get_bit(v, b.bitvector)) {
-                            tri += 1;
-                        }
-                    }
-                } else {
-                    for (auto it = b.neighbors.begin(); it != b.neighbors.end(); it++) {
-                        int v = it->first;
-
-                        if (get_bit(v, a.bitvector)) {
-                            tri += it->second;
-                        }
-                    }
-                }
-            }
-
-            if (!duplicate_edge) {
-                tri *= 2;
-            }
-
-            result = tri;
-        }
-
-        void reduce_function(count_reduce_type& total, const count_reduce_type& partial) const {
-            total += partial;
-        }
-
-        void apply(const count_reduce_type& total, vertex_value_type& vertex) {
-            size_t deg = vertex.neighbors.size();
-            size_t tri = total / 4;
-            vertex.clustering_coef = deg > 1 ? tri / (deg * (deg - 1.0)) : 0.0;
-        }
 };
 
 
@@ -224,7 +236,7 @@ int main(int argc, char *argv[]) {
     timer_start();
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    Graph<vertex_value_type, int> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
@@ -232,17 +244,20 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("initialize engine");
-    for (size_t i = 0; i < graph.nvertices; i++) {
-        graph.vertexproperty[i].id = i;
-        graph.vertexproperty[i].clustering_coef = 0.0;
+    for (size_t i = 1; i <= graph.nvertices; i++) {
+        vertex_value_type v;
+        v.id = i;
+        graph.setVertexproperty(i, v);
     }
 
     graph.setAllActive();
 
-    CollectNeighborsProgram col_prog(graph.nvertices);
-    CountTrianglesProgram cnt_prog;
+    CollectNeighborsOutProgram col_prog_out(graph.nvertices);
+    CollectNeighborsInProgram col_prog_in(graph.nvertices);
+    CountTrianglesProgram cnt_prog(graph.nvertices);
 
-    auto col_ctx = graph_program_init(col_prog, graph);
+    auto col_ctx_out = graph_program_init(col_prog_out, graph);
+    auto col_ctx_in = graph_program_init(col_prog_in, graph);
     auto cnt_ctx = graph_program_init(cnt_prog, graph);
 
 #ifdef GRANULA
@@ -250,8 +265,10 @@ int main(int argc, char *argv[]) {
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
-    timer_next("run algorithm 1 (collect neighbors)");
-    run_graph_program(&col_prog, graph, 1, &col_ctx);
+    timer_next("run algorithm 1 - phase 1 & 2 (collect neighbors)");
+    run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
+    graph.setAllActive();
+    run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
 
     timer_next("run algorithm 2 (count triangles)");
     graph.setAllActive();
@@ -274,7 +291,8 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("deinitialize engine");
-    graph_program_clear(col_ctx);
+    graph_program_clear(col_ctx_out);
+    graph_program_clear(col_ctx_in);
     graph_program_clear(cnt_ctx);
 
     timer_end();
