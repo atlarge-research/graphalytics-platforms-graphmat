@@ -200,6 +200,11 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
 
 
 int main(int argc, char *argv[]) {
+
+#ifdef GRANULA
+    granula::startMonitorProcess(getpid());
+#endif
+
     MPI_Init(&argc, &argv);
     GraphPad::GB_Init();
     if (argc < 3) {
@@ -207,16 +212,24 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+
+
+
     bool is_master = GraphPad::global_myrank == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;
-    char *output = argc > 4 ? argv[4] : NULL;
+    string jobId = argc > 4 ? argv[4]: "DefaultJobId";
+    char *output = argc > 5 ? argv[5] : NULL;
 
     nthreads = omp_get_max_threads();
     if (is_master) cout << "num. threads: " << nthreads << endl;
 
+
+
 #ifdef GRANULA
+    granula::linkNode(jobId);
+    granula::linkProcess(getpid(), jobId);
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
     if (is_master) cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
@@ -286,6 +299,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     if (is_master) cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    granula::stopMonitorProcess(getpid());
 #endif
 
     MPI_Finalize();

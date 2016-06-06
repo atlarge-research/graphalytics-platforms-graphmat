@@ -40,8 +40,8 @@ public final class PageRankJob extends GraphMatJob {
 	 * @param graphInputPath   the path of the input graph
 	 * @param graphOutputPath  the path of the output graph
 	 */
-	public PageRankJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, PageRankParameters params) {
-		super(config, graphPath, vertexTranslation);
+	public PageRankJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, PageRankParameters params, String jobId) {
+		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
 
@@ -54,6 +54,7 @@ public final class PageRankJob extends GraphMatJob {
 	protected void addJobArguments(List<String> args) {
 		args.add(Integer.toString(params.getNumberOfIterations()));
 		args.add(Double.toString(params.getDampingFactor()));
+		args.add(jobId);
 	}
 
 }

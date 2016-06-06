@@ -37,8 +37,8 @@ public final class BreadthFirstSearchJob extends GraphMatJob {
 
 	private final BreadthFirstSearchParameters params;
 
-	public BreadthFirstSearchJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, BreadthFirstSearchParameters params) {
-		super(config, graphPath, vertexTranslation);
+	public BreadthFirstSearchJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, BreadthFirstSearchParameters params, String jobId) {
+		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
 
@@ -53,5 +53,6 @@ public final class BreadthFirstSearchJob extends GraphMatJob {
 		long newSource = vertexTranslation.get(oldSource);
 		
 		args.add(Long.toString(newSource));
+		args.add(jobId);
 	}
 }

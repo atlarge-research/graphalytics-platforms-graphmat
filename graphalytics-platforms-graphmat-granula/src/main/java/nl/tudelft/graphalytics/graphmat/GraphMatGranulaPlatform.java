@@ -15,10 +15,14 @@
  */
 package nl.tudelft.graphalytics.graphmat;
 
+import nl.tudelft.graphalytics.domain.Benchmark;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
-import nl.tudelft.graphalytics.graphmat.reporting.logging.GraphMatLogger;
-import nl.tudelft.pds.granula.modeller.graphmat.job.GraphMat;
-import nl.tudelft.pds.granula.modeller.model.job.JobModel;
+import nl.tudelft.granula.modeller.platform.GraphMat;
+import nl.tudelft.granula.modeller.job.JobModel;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 import java.nio.file.Path;
 
 /**
@@ -26,6 +30,7 @@ import java.nio.file.Path;
  */
 public final class GraphMatGranulaPlatform extends GraphMatPlatform implements GranulaAwarePlatform {
 
+	private static PrintStream console;
 
 	public GraphMatGranulaPlatform() {
 		super();
@@ -33,18 +38,37 @@ public final class GraphMatGranulaPlatform extends GraphMatPlatform implements G
 	}
 
 	@Override
-	public void setBenchmarkLogDirectory(Path logDirectory) {
-		GraphMatLogger.startPlatformLogging(logDirectory.resolve("OperationLog").resolve("driver.logs"));
+	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
+		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public void finalizeBenchmarkLogs(Path logDirectory) {
-		GraphMatLogger.stopPlatformLogging();
+	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+		stopPlatformLogging();
 	}
 
 	@Override
-	public JobModel getGranulaModel() {
-		return new GraphMat();
+	public JobModel getJobModel() {
+		return new JobModel(new GraphMat());
 	}
 
+	public static void startPlatformLogging(Path fileName) {
+		console = System.out;
+		try {
+			File file = null;
+			file = fileName.toFile();
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			FileOutputStream fos = new FileOutputStream(file);
+			PrintStream ps = new PrintStream(fos);
+			System.setOut(ps);
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("cannot redirect to output file");
+		}
+	}
+
+	public static void stopPlatformLogging() {
+		System.setOut(console);
+	}
 }

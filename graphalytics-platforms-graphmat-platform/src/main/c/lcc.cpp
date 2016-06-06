@@ -202,18 +202,26 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
 
 int main(int argc, char *argv[]) {
+
+#ifdef GRANULA
+    granula::startMonitorProcess(getpid());
+#endif
+
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
     char *filename = argv[1];
-    char *output = argc > 2 ? argv[2] : NULL;
+    string jobId = argc > 2 ? argv[2] : NULL;
+    char *output = argc > 3 ? argv[3] : NULL;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
+    granula::linkNode(jobId);
+    granula::linkProcess(getpid(), jobId);
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
     cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
@@ -281,6 +289,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    granula::stopMonitorProcess(getpid());
 #endif
 
     return EXIT_SUCCESS;

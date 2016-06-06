@@ -9,8 +9,8 @@ import nl.tudelft.graphalytics.graphmat.GraphMatJob;
 
 public class LocalClusteringCoefficientJob extends GraphMatJob {
 
-	public LocalClusteringCoefficientJob(Configuration config, String graphPath, Long2LongMap vertexTranslation) {
-		super(config, graphPath, vertexTranslation);
+	public LocalClusteringCoefficientJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, String jobId) {
+		super(config, graphPath, vertexTranslation, jobId);
 	}
 		
 	@Override
@@ -21,5 +21,6 @@ public class LocalClusteringCoefficientJob extends GraphMatJob {
 	@Override
 	protected void addJobArguments(List<String> args) {
 		// None
+		args.add(jobId);
 	}
 }

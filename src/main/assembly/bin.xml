@@ -21,6 +21,7 @@
 			<outputDirectory>.</outputDirectory>
 			<includes>
 				<include>prepare-benchmark.sh</include>
+				<include>build.sh</include>
 				<include>config-template/**</include>
 			</includes>
 		</fileSet>

@@ -152,6 +152,11 @@ class CommunityDetectionProgram: public GraphProgram<msg_type, reduce_type, vert
 
 
 int main(int argc, char *argv[]) {
+
+#ifdef GRANULA
+    granula::startMonitorProcess(getpid());
+#endif
+
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <niterations> [output file]" << endl;
         return EXIT_FAILURE;;
@@ -159,12 +164,15 @@ int main(int argc, char *argv[]) {
 
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
-    char *output = argc > 3 ? argv[3] : NULL;
+    string jobId = argc > 3 ? argv[3] : NULL;
+    char *output = argc > 4 ? argv[4] : NULL;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
+    granula::linkNode(jobId);
+    granula::linkProcess(getpid(), jobId);
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
     cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
@@ -223,6 +231,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+        granula::stopMonitorProcess(getpid());
 #endif
 
 

@@ -72,6 +72,11 @@ class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, verte
 
 
 int main(int argc, char *argv[]) {
+
+#ifdef GRANULA
+    granula::startMonitorProcess(getpid());
+#endif
+
     MPI_Init(&argc, &argv);
     GraphPad::GB_Init();
     if (argc < 3) {
@@ -82,7 +87,8 @@ int main(int argc, char *argv[]) {
     bool is_master = GraphPad::global_myrank == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
-    char *output = argc > 3 ? argv[3] : NULL;
+    string jobId = argc > 3 ? argv[3] : NULL;
+    char *output = argc > 4 ? argv[4] : NULL;
 
     if (is_master) cout << "source vertex: " << source_vertex << endl;
 
@@ -90,6 +96,8 @@ int main(int argc, char *argv[]) {
     if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
+    granula::linkNode(jobId);
+    granula::linkProcess(getpid(), jobId);
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
     if (is_master) cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
@@ -152,6 +160,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     if (is_master) cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    granula::stopMonitorProcess(getpid());
 #endif
 
     MPI_Finalize();

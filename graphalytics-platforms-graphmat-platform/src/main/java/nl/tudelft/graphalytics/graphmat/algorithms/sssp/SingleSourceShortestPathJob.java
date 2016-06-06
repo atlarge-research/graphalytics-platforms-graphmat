@@ -37,8 +37,8 @@ public final class SingleSourceShortestPathJob extends GraphMatJob {
 
 	private final SingleSourceShortestPathsParameters params;
 
-	public SingleSourceShortestPathJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, SingleSourceShortestPathsParameters params) {
-		super(config, graphPath, vertexTranslation);
+	public SingleSourceShortestPathJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, SingleSourceShortestPathsParameters params, String jobId) {
+		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
 
@@ -53,5 +53,6 @@ public final class SingleSourceShortestPathJob extends GraphMatJob {
 		long newSource = vertexTranslation.get(oldSource);
 		
 		args.add(Long.toString(newSource));
+		args.add(jobId);
 	}
 }

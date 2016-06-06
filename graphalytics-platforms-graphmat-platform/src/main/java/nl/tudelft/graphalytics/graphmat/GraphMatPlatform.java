@@ -184,22 +184,22 @@ public class GraphMatPlatform implements Platform {
 
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params);
+				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmark.getId());
 				break;
 			case PR:
-				job = new PageRankJob(config, graphFile, vertexTranslation, (PageRankParameters) params);
+				job = new PageRankJob(config, graphFile, vertexTranslation, (PageRankParameters) params, benchmark.getId());
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation);
+				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation, benchmark.getId());
 				break;
 			case CDLP:
-				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params);
+				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmark.getId());
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation);
+				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation, benchmark.getId());
 				break;
 			case SSSP:
-				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
+				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmark.getId());
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");

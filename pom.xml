@@ -50,7 +50,6 @@
 				<activeByDefault>false</activeByDefault>
 			</activation>
 			<modules>
-				<module>granula-model-graphmat</module>
 				<module>graphalytics-platforms-graphmat-granula</module>
 			</modules>
 		</profile>

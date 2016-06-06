@@ -13,8 +13,8 @@ public class CommunityDetectionLPJob extends GraphMatJob {
 
 	private final CommunityDetectionLPParameters params;
 
-	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params) {
-		super(config, graphPath, vertexTranslation);
+	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params, String jobId) {
+		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
 	
@@ -26,5 +26,6 @@ public class CommunityDetectionLPJob extends GraphMatJob {
 	@Override
 	protected void addJobArguments(List<String> args) {
 		args.add(Integer.toString(params.getMaxIterations()));
+		args.add(jobId);
 	}
 }

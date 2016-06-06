@@ -48,12 +48,14 @@ public abstract class GraphMatJob {
 	protected final String graphPath;
 	protected final Long2LongMap vertexTranslation;
 	protected String outputPath;
+	protected String jobId;
 
-	public GraphMatJob(Configuration config, String graphPath, Long2LongMap vertexTranslation) {
+	public GraphMatJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, String jobId) {
 		this.config = config;
 		this.graphPath = graphPath;
 		this.outputPath = null;
 		this.vertexTranslation = vertexTranslation;
+		this.jobId = jobId;
 	}
 	
 	public void setOutputPath(String file) {

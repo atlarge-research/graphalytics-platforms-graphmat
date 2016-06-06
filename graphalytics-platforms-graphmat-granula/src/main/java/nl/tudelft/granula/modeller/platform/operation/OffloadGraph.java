@@ -14,30 +14,33 @@
  * limitations under the License.
  */
 
-package nl.tudelft.pds.granula.modeller.graphmat.operation;
+package nl.tudelft.granula.modeller.platform.operation;
 
-import nl.tudelft.pds.granula.modeller.graphmat.GraphMatType;
-import nl.tudelft.pds.granula.modeller.model.operation.ConcreteOperationModel;
-import nl.tudelft.pds.granula.modeller.rule.linking.UniqueParentLinking;
-import nl.tudelft.pds.granula.modeller.rule.visual.MainInfoTableVisualization;
+import nl.tudelft.granula.modeller.Type;
+import nl.tudelft.granula.modeller.rule.derivation.SimpleSummaryDerivation;
+import nl.tudelft.granula.modeller.rule.linking.UniqueParentLinking;
+import nl.tudelft.granula.modeller.rule.visual.TableVisualization;
 
 import java.util.ArrayList;
 
-public class GraphMatJob extends ConcreteOperationModel {
+public class OffloadGraph extends RealtimeOperationModel {
 
-    public GraphMatJob() {
-        super(GraphMatType.GraphMat, GraphMatType.Job);
+    public OffloadGraph() {
+        super(Type.GraphMat, Type.OffloadGraph);
     }
 
     public void loadRules() {
         super.loadRules();
-        addLinkingRule(new UniqueParentLinking(GraphMatType.TopActor, GraphMatType.TopMission));
 
+        addLinkingRule(new UniqueParentLinking(Type.GraphMat, Type.Job));
 
-        addVisualDerivation(new MainInfoTableVisualization(1,
+        String summary = "OffloadGraph stores the results back in disk.";
+        addInfoDerivation(new SimpleSummaryDerivation(11, summary));
+
+        addVisualDerivation(new TableVisualization(1, "MainInfo",
                 new ArrayList<String>() {{
-//                    add("InputMethod");
                 }}));
     }
+
 
 }
