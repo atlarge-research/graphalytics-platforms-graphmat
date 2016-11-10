@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.tudelft.graphalytics.BenchmarkMetrics;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
@@ -107,6 +108,19 @@ public class GraphMatPlatform implements Platform {
 		}
 	}
 
+	private void setupGraph(Graph graph) throws Exception {
+
+		String intermediateFile = createIntermediateFile(graph.getName(), ".txt");
+		String outputFile = createIntermediateFile(graph.getName(), ".mtx");
+
+
+		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
+
+
+		this.intermediateGraphFile = intermediateFile;
+		this.graphFile = outputFile;
+	}
+
 
 	@Override
 	public void uploadGraph(Graph graph) throws Exception {
@@ -182,6 +196,12 @@ public class GraphMatPlatform implements Platform {
 		Object params = benchmark.getAlgorithmParameters();
 		GraphMatJob job;
 
+		try {
+			setupGraph(benchmark.getGraph());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		switch (algorithm) {
 			case BFS:
 				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmark.getId());
@@ -240,6 +260,11 @@ public class GraphMatPlatform implements Platform {
 		for (int i = 0; i < 16; i++) {
 			tryDeleteIntermediateFile(graphFile + i);
 		}
+	}
+
+	@Override
+	public BenchmarkMetrics retrieveMetrics() {
+		return new BenchmarkMetrics(); //TODO implements this method.
 	}
 
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
