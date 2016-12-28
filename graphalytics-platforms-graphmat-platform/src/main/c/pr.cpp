@@ -202,14 +202,14 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::global_myrank == 0;
+    bool is_master = GraphPad::get_global_myrank() == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;
     char *output = argc > 4 ? argv[4] : NULL;
 
-    nthreads = omp_get_max_threads();
-    if (is_master) cout << "num. threads: " << nthreads << endl;
+    //nthreads = omp_get_max_threads();
+    //if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
@@ -223,7 +223,8 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     Graph<vertex_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    //graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
