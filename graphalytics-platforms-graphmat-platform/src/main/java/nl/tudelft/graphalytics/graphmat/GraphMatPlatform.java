@@ -202,9 +202,6 @@ public class GraphMatPlatform implements Platform {
 			case SSSP:
 				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
 				break;
-			case SSSP:
-				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
-				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
