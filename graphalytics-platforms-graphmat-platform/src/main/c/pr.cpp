@@ -1,12 +1,12 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <iostream>
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -30,6 +30,10 @@ struct vertex_value_type {
             in_degree = 0;
         }
 
+        vertex_value_type(score_type score_out) {
+            score = score_out;
+        }
+
         bool operator!=(const vertex_value_type& other) const {
             return !(out_degree == other.out_degree && score == other.score);
         }
@@ -37,6 +41,10 @@ struct vertex_value_type {
         friend ostream& operator<<(ostream& stream, const vertex_value_type &v) {
             stream << v.score;
             return stream;
+        }
+
+        score_type get_output() {
+            return score;
         }
 };
 
@@ -164,6 +172,17 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
             //Fix vertices with 0 in and out degrees here.
             score_type next_dangling_sum = 0.0;
 
+            /*#pragma omp parallel for reduction(+:next_dangling_sum)
+            for (size_t i = 0; i < graph.nvertices; i++) {
+                if (graph.vertexproperty[i].out_degree == 0) {
+                    next_dangling_sum += graph.vertexproperty[i].score;
+                }
+
+                if (graph.vertexproperty[i].in_degree == 0) {
+                    graph.vertexproperty[i].score = (1 - damping_factor +
+                                                damping_factor*dangling_sum) / graph.nvertices;
+                }
+            }*/
             struct param param_t;
             param_t.damping_factor = damping_factor;
             param_t.dangling_sum = dangling_sum;
@@ -176,35 +195,38 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
 
 
 int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <num iterations> [damping factor] [output file]" << endl;
         return EXIT_FAILURE;
     }
 
+    bool is_master = GraphPad::global_myrank == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;
     char *output = argc > 4 ? argv[4] : NULL;
 
     nthreads = omp_get_max_threads();
-    cout << "num. threads: " << nthreads << endl;
+    if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
-    cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
     granula::operation loadGraph("GraphMat", "Id.Unique", "LoadGraph", "Id.Unique");
-    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
 
-    timer_start();
+    timer_start(is_master);
 
     timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
-    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("initialize engine");
@@ -221,33 +243,33 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
-    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("run algorithm 1 (count degree)");
-    run_graph_program(&out_deg_prog, graph, 1, &ctx1);
-    run_graph_program(&in_deg_prog, graph, 1, &ctx2);
+    run_graph_program(&out_deg_prog, graph, 1);
+    run_graph_program(&in_deg_prog, graph, 1);
 
     timer_next("initialize vertices");
     pr_prog.init();
 
     timer_next("run algorithm 2 (compute PageRank)");
-    run_graph_program(&pr_prog, graph, niterations, &ctx3);
+    run_graph_program(&pr_prog, graph, niterations);
 
 #ifdef GRANULA
-    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
 #ifdef GRANULA
     granula::operation offloadGraph("GraphMat", "Id.Unique", "OffloadGraph", "Id.Unique");
-    cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, score_type>(output, graph, MPI_DOUBLE);
 
 #ifdef GRANULA
-    cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("deinitialize engine");
@@ -258,8 +280,9 @@ int main(int argc, char *argv[]) {
     timer_end();
 
 #ifdef GRANULA
-    cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
 
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }

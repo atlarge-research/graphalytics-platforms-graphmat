@@ -1,11 +1,11 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -19,38 +19,41 @@ typedef depth_type reduce_type;
 
 struct vertex_value_type {
     public:
-        depth_type prev;
         depth_type curr;
 
         vertex_value_type() {
-            prev = numeric_limits<depth_type>::max();
             curr = numeric_limits<depth_type>::max();
         }
 
         vertex_value_type(depth_type d) {
             curr = d;
-            prev = numeric_limits<depth_type>::max();
         }
 
         bool operator!= (const vertex_value_type& other) const {
-            return !(prev == other.prev && curr == other.curr);
+            return !(curr == other.curr);
         }
 
         friend ostream& operator<< (ostream& stream, const vertex_value_type &v) {
             if (v.curr != numeric_limits<depth_type>::max()) {
                 stream << v.curr;
             } else {
-                stream << numeric_limits<int64_t>::max();
+                stream << numeric_limits<int64_t>::max(); 
             }
 
             return stream;
+        }
+
+        depth_type get_output() {
+            return curr;
         }
 };
 
 class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
+        depth_type current_depth;
+
         BreadthFirstSearch() {
-            //
+            current_depth=1;
         }
 
         edge_direction getOrder() const {
@@ -59,7 +62,7 @@ class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_valu
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
             msg = vertex.curr + 1;
-            return vertex.curr != vertex.prev;
+            return (vertex.curr == current_depth-1);
         }
 
         void reduce_function(reduce_type& total, const reduce_type& partial) const {
@@ -71,43 +74,52 @@ class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_valu
         }
 
         void apply(const reduce_type& msg, vertex_value_type& vertex) {
-            vertex.prev = vertex.curr;
-            vertex.curr = min(vertex.curr, msg);
+            if(vertex.curr == numeric_limits<depth_type>::max())
+            {
+              vertex.curr = current_depth;
+            }
+        }
+
+        void do_every_iteration(int iteration_number) {
+            current_depth++;
         }
 };
 
 
 int main(int argc, char *argv[]) {
+    MPI_Init(&argc, &argv);
+    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
+    bool is_master = GraphPad::global_myrank == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
     char *output = argc > 3 ? argv[3] : NULL;
 
-    cout << "source vertex: " << source_vertex << endl;
+    if (is_master) cout << "source vertex: " << source_vertex << endl;
 
     nthreads = omp_get_max_threads();
-    cout << "num. threads: " << nthreads << endl;
+    if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::operation graphmatJob("GraphMat", "Id.Unique", "Job", "Id.Unique");
-    cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("StartTime", graphmatJob.getEpoch())<<endl;
 
     granula::operation loadGraph("GraphMat", "Id.Unique", "LoadGraph", "Id.Unique");
-    cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("StartTime", loadGraph.getEpoch())<<endl;
 #endif
 
-    timer_start();
+    timer_start(is_master);
 
     timer_next("load graph");
     Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
-    cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
+    if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("initialize engine");
@@ -116,6 +128,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    graph.setAllInactive();
     graph.setVertexproperty(source_vertex, vertex_value_type(0));
     graph.setActive(source_vertex);
 
@@ -124,26 +137,26 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
-    cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, -1, &ctx);
+    run_graph_program(&prog, graph, -1);
 
 #ifdef GRANULA
-    cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
 #ifdef GRANULA
     granula::operation offloadGraph("GraphMat", "Id.Unique", "OffloadGraph", "Id.Unique");
-    cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, depth_type>(output, graph, MPI_UNSIGNED);
 
 #ifdef GRANULA
-    cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif
 
 
@@ -153,8 +166,9 @@ int main(int argc, char *argv[]) {
     timer_end();
 
 #ifdef GRANULA
-    cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
+    if (is_master) cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
 
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }

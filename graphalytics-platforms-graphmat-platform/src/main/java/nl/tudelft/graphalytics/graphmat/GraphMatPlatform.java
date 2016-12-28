@@ -19,8 +19,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.ProcessBuilder.Redirect;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -168,6 +166,7 @@ public class GraphMatPlatform implements Platform {
 		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
 		args.add("--outputedgeweights=" + (isWeighted ? "1" : "2"));
 		args.add("--edgeweighttype=" + weightType);
+		args.add("--split=16");
 		args.add(intermediateFile);
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
@@ -199,6 +198,9 @@ public class GraphMatPlatform implements Platform {
 				break;
 			case LCC:
 				job = new LocalClusteringCoefficientJob(config, graphFile, isDirected ? "1" : "0", vertexTranslation);
+				break;
+			case SSSP:
+				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
 				break;
 			case SSSP:
 				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params);
@@ -238,7 +240,10 @@ public class GraphMatPlatform implements Platform {
 	@Override
 	public void deleteGraph(String graphName) {
 		tryDeleteIntermediateFile(intermediateGraphFile);
-		tryDeleteIntermediateFile(graphFile);
+		// TODO parametrize graph conversion splits
+		for (int i = 0; i < 16; i++) {
+			tryDeleteIntermediateFile(graphFile + i);
+		}
 	}
 
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
