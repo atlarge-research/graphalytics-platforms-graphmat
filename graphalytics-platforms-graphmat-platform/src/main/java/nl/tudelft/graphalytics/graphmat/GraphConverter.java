@@ -70,7 +70,7 @@ public final class GraphConverter {
 			while ((line  = r.readLine()) != null) {
 				String[] parts = line.split(" ");
 				
-				if (parts.length != 2) {
+				if (parts.length < 2) {
 					throw new IOException("Invalid line found in " + edgeFile);
 				}
 				
@@ -84,7 +84,11 @@ public final class GraphConverter {
 					throw new IOException("Edge (" + oldSrc + "," + oldDst + ") is invalid since vertex ids are unknown");
 				}
 
-				w.print(newSrc + " " + newDst + "\n");
+				w.print(newSrc + " " + newDst);
+				for (int i = 2; i < parts.length; i++) {
+					w.print(" " + parts[i]);
+				}
+				w.print("\n");
 			}
 		}
 		

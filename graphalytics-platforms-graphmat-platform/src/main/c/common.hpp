@@ -5,8 +5,8 @@
 #include <sys/time.h>
 #include <vector>
 
-template <typename T>
-void print_graph(const char *filename, const Graph<T>& graph) {
+template <typename T, typename E>
+void print_graph(const char *filename, const Graph<T, E>& graph) {
     if (filename == NULL || strlen(filename) == 0) {
         return;
     }
@@ -22,8 +22,8 @@ void print_graph(const char *filename, const Graph<T>& graph) {
         stream = &std::cout;
     }
 
-    for (size_t i = 0; i < graph.nvertices; i++) {
-        (*stream) << i + 1 << " " << graph.vertexproperty[i] << std::endl;
+    for (size_t i = 1; i <= graph.nvertices; i++) {
+        (*stream) << i << " " << graph.getVertexproperty(i) << std::endl;
     }
 
     if (file_stream != NULL) {

@@ -23,7 +23,6 @@ struct vertex_value_type {
     double clustering_coef;
     char* all_bitvector;
     char* out_bitvector;
-
   public:
     vertex_value_type() {
       id = -1;
@@ -91,6 +90,7 @@ class CollectNeighborsOutProgram: public GraphProgram<collect_msg_type, collect_
     } else {
       std::sort(vertexprop.out_neighbors.begin(), vertexprop.out_neighbors.end());
     }
+
   }
 
 };
@@ -105,6 +105,7 @@ class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_r
     order = OUT_EDGES;
     activity = ALL_VERTICES;
     bitvector_size = (maxvertices)/8 + 1; //for safety
+
   }
 
   void reduce_function(collect_reduce_type& a, const collect_reduce_type& b) const {
@@ -134,6 +135,7 @@ class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_r
       auto last = unique(all_neighbors.begin(), all_neighbors.end());
       all_neighbors.erase(last, all_neighbors.end());
     }
+
   }
 
 };
@@ -210,13 +212,14 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
+    if (argc < 3) {
+        cerr << "usage: " << argv[0] << " <graph file> <isDirected> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
     char *filename = argv[1];
-    char *output = argc > 2 ? argv[2] : NULL;
+    int isDirected = atoi(argv[2]);
+    char *output = argc > 3 ? argv[3] : NULL;
 
     nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;

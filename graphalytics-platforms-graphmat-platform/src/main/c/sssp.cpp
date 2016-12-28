@@ -1,11 +1,11 @@
+#include "GraphMatRuntime.cpp"
+#include "common.hpp"
+
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-
-#include "GraphMatRuntime.cpp"
-#include "common.hpp"
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -13,67 +13,61 @@
 
 using namespace std;
 
-typedef uint32_t depth_type;
+typedef double depth_type;
 typedef depth_type msg_type;
 typedef depth_type reduce_type;
+typedef depth_type edge_value_type;
 
 struct vertex_value_type {
     public:
-        depth_type prev;
         depth_type curr;
 
         vertex_value_type() {
-            prev = numeric_limits<depth_type>::max();
             curr = numeric_limits<depth_type>::max();
         }
 
         vertex_value_type(depth_type d) {
             curr = d;
-            prev = numeric_limits<depth_type>::max();
         }
 
         bool operator!= (const vertex_value_type& other) const {
-            return !(prev == other.prev && curr == other.curr);
+            return !(curr == other.curr);
         }
 
         friend ostream& operator<< (ostream& stream, const vertex_value_type &v) {
             if (v.curr != numeric_limits<depth_type>::max()) {
                 stream << v.curr;
             } else {
-                stream << numeric_limits<int64_t>::max();
+                stream << "inf";
             }
 
             return stream;
         }
+
+        depth_type get_output() {
+            return curr;
+        }
 };
 
-class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
+class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
     public:
-        BreadthFirstSearch() {
-            //
-        }
-
-        edge_direction getOrder() const {
-            return OUT_EDGES;
-        }
-
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
-            msg = vertex.curr + 1;
-            return vertex.curr != vertex.prev;
+            msg = vertex.curr;
+            return true;
         }
 
         void reduce_function(reduce_type& total, const reduce_type& partial) const {
             total = min(total, partial);
         }
 
-        void process_message(const msg_type& msg, const int edge, const vertex_value_type& vertex, reduce_type& result) const {
-            result = msg;
+        void process_message(const msg_type& msg, const edge_value_type edge_value, const vertex_value_type& vertex, reduce_type& result) const {
+            result = msg + edge_value;
         }
 
         void apply(const reduce_type& msg, vertex_value_type& vertex) {
-            vertex.prev = vertex.curr;
             vertex.curr = min(vertex.curr, msg);
         }
+
 };
 
 
@@ -103,7 +97,7 @@ int main(int argc, char *argv[]) {
     timer_start();
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    Graph<vertex_value_type, edge_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
@@ -116,10 +110,11 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+    graph.setAllInactive();
     graph.setVertexproperty(source_vertex, vertex_value_type(0));
     graph.setActive(source_vertex);
 
-    BreadthFirstSearch prog;
+    SingleSourceShortestPath prog;
     auto ctx = graph_program_init(prog, graph);
 
 #ifdef GRANULA
@@ -128,7 +123,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, -1, &ctx);
+    run_graph_program(&prog, graph, -1);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -140,7 +135,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, edge_value_type>(output, graph);
 
 #ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -158,3 +153,4 @@ int main(int argc, char *argv[]) {
 
     return EXIT_SUCCESS;
 }
+
