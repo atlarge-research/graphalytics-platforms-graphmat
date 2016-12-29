@@ -14,7 +14,7 @@ if (NOT GRAPHMAT_HOME)
 endif ()
 
 if (NOT GRAPHMAT_DIST_HOME)
-    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/GraphMatDistributedPrimitives)
+    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/GMDP)
 endif ()
 
 if (GRANULA)

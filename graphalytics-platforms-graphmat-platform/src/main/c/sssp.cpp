@@ -73,13 +73,12 @@ class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, verte
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::get_global_myrank() == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
     char *output = argc > 3 ? argv[3] : NULL;

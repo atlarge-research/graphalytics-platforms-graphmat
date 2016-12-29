@@ -196,13 +196,12 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <num iterations> [damping factor] [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::get_global_myrank() == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;

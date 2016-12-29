@@ -76,13 +76,12 @@ class WeaklyConnectedComponents: public GraphProgram<msg_type, reduce_type, vert
 
 int main(int argc, char *argv[]) {
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::get_global_myrank() == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     char *output = argc > 2 ? argv[2] : NULL;
 
