@@ -53,6 +53,7 @@ class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
         OutDegreeProgram() {
             order = IN_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, int& msg) const {
@@ -79,6 +80,7 @@ class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
         InDegreeProgram() {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, int& msg) const {
@@ -139,16 +141,12 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         PageRankProgram(Graph<vertex_value_type> &g, double df): graph(g), damping_factor(df) {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         void init() {
             int ndangling = 0;
 
-            /*#pragma omp parallel for reduction(+:ndangling)
-            for (size_t i = 0; i < graph.nvertices; i++) {
-                graph.vertexproperty[i].score = 1.0 / graph.nvertices;
-                ndangling += (graph.vertexproperty[i].out_degree == 0);
-            }*/
             int N = graph.getNumberOfVertices();
             graph.applyReduceAllVertices(&ndangling, init_score_and_count_dangling, add, (void*)&N);
 
@@ -206,24 +204,20 @@ int main(int argc, char *argv[]) {
 #endif
 
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <num iterations> [damping factor] [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-
-
-
-    bool is_master = GraphPad::global_myrank == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;
     string jobId = argc > 4 ? argv[4]: "DefaultJobId";
     char *output = argc > 5 ? argv[5] : NULL;
 
-    nthreads = omp_get_max_threads();
-    if (is_master) cout << "num. threads: " << nthreads << endl;
+    //nthreads = omp_get_max_threads();
+    //if (is_master) cout << "num. threads: " << nthreads << endl;
 
 
 
@@ -241,7 +235,8 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     Graph<vertex_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    //graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;

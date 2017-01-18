@@ -14,7 +14,7 @@ if (NOT GRAPHMAT_HOME)
 endif ()
 
 if (NOT GRAPHMAT_DIST_HOME)
-    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/GraphMatDistributedPrimitives)
+    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/GMDP)
 endif ()
 
 if (GRANULA)
@@ -34,7 +34,7 @@ add_definitions (-DHAS_MPI)
 include_directories(SYSTEM "${GRAPHMAT_HOME}/src")
 include_directories(SYSTEM "${GRAPHMAT_DIST_HOME}")
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -openmp -xHost")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -qopenmp -xHost")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -pedantic -Wextra -Wno-unused-variable -D__TIMING -D__DEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo")
 

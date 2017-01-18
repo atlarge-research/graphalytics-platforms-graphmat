@@ -52,6 +52,7 @@ class WeaklyConnectedComponents: public GraphProgram<msg_type, reduce_type, vert
         WeaklyConnectedComponents() {
             order = ALL_EDGES;
             activity = ACTIVE_ONLY;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
@@ -81,19 +82,18 @@ int main(int argc, char *argv[]) {
 #endif
 
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 2) {
         cerr << "usage: " << argv[0] << " <graph file> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::global_myrank == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     string jobId = argc > 2 ? argv[2] : NULL;
     char *output = argc > 3 ? argv[3] : NULL;
 
-    nthreads = omp_get_max_threads();
-    if (is_master) cout << "num. threads: " << nthreads << endl;
+    //nthreads = omp_get_max_threads();
+    //if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::linkNode(jobId);
@@ -109,7 +109,8 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     Graph<vertex_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    //graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;

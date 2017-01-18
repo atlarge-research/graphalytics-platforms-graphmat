@@ -193,8 +193,8 @@ int main(int argc, char *argv[]) {
     timer_next("initialize engine");
     graph.setAllActive();
 
-    for (size_t i = 0; i < graph.nvertices; i++) {
-        graph.vertexproperty[i] = label_type(i);
+    for (size_t i = 1; i <= graph.nvertices; i++) {
+        graph.setVertexproperty(i, label_type(i));
     }
 
     CommunityDetectionProgram prog;

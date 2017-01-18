@@ -51,6 +51,9 @@ struct vertex_value_type {
 
 class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
     public:
+	SingleSourceShortestPath() {
+    	    process_message_requires_vertexprop = false;
+	}
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
             msg = vertex.curr;
             return true;
@@ -78,13 +81,12 @@ int main(int argc, char *argv[]) {
 #endif
 
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::global_myrank == 0;
+    bool is_master = GMDP::get_global_myrank() == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
     string jobId = argc > 3 ? argv[3] : NULL;
@@ -92,8 +94,8 @@ int main(int argc, char *argv[]) {
 
     if (is_master) cout << "source vertex: " << source_vertex << endl;
 
-    nthreads = omp_get_max_threads();
-    if (is_master) cout << "num. threads: " << nthreads << endl;
+    //nthreads = omp_get_max_threads();
+    //if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::linkNode(jobId);
@@ -109,7 +111,8 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     Graph<vertex_value_type, edge_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    //graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
