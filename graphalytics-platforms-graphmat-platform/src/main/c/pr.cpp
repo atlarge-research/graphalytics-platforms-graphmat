@@ -53,6 +53,7 @@ class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
         OutDegreeProgram() {
             order = IN_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, int& msg) const {
@@ -79,6 +80,7 @@ class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
         InDegreeProgram() {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, int& msg) const {
@@ -139,6 +141,7 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
         PageRankProgram(Graph<vertex_value_type> &g, double df): graph(g), damping_factor(df) {
             order = OUT_EDGES;
             activity = ALL_VERTICES;
+    	    process_message_requires_vertexprop = false;
         }
 
         void init() {

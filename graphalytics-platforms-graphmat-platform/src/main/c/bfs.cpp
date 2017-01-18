@@ -54,6 +54,7 @@ class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_valu
 
         BreadthFirstSearch() {
             current_depth=1;
+    	    process_message_requires_vertexprop = false;
         }
 
         edge_direction getOrder() const {

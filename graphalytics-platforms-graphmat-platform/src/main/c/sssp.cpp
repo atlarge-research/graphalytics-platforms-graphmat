@@ -51,6 +51,9 @@ struct vertex_value_type {
 
 class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
     public:
+	SingleSourceShortestPath() {
+    	    process_message_requires_vertexprop = false;
+	}
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
             msg = vertex.curr;
             return true;

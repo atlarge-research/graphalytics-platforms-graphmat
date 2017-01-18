@@ -52,6 +52,7 @@ class WeaklyConnectedComponents: public GraphProgram<msg_type, reduce_type, vert
         WeaklyConnectedComponents() {
             order = ALL_EDGES;
             activity = ACTIVE_ONLY;
+    	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
