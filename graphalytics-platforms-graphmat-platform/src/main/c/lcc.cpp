@@ -175,7 +175,8 @@ class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_r
 
 typedef int count_reduce_type;
 //typedef const vertex_value_type* count_msg_type;
-typedef vertex_value_type count_msg_type;
+//typedef vertex_value_type count_msg_type;
+typedef serializable_vector<int> count_msg_type;
 
 class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
 
@@ -193,7 +194,7 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
   void process_message(const count_msg_type& message, const int edge_val, const vertex_value_type& vertexprop, count_reduce_type& res) const {
     count_reduce_type tri = 0;
     //const vertex_value_type& neighbor = *message;
-    const vertex_value_type& neighbor(message);
+    //const vertex_value_type& neighbor(message);
     
     /*char* bv;
     std::vector<int>::const_iterator itb, ite;
@@ -213,14 +214,15 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
       }
     } else {*/
       int it1 = 0, it2 = 0;
-      int it1_end = neighbor.out_neighbors.size();
+      //int it1_end = neighbor.out_neighbors.size();
+      int it1_end = message.v.size();
       int it2_end = vertexprop.all_neighbors.size();
 
       while (it1 != it1_end && it2 != it2_end){
-        if (neighbor.out_neighbors[it1] == vertexprop.all_neighbors[it2]) {
+        if (message.v[it1] == vertexprop.all_neighbors[it2]) {
           tri++;
           ++it1; ++it2;
-        } else if (neighbor.out_neighbors[it1] < vertexprop.all_neighbors[it2]) {
+        } else if (message.v[it1] < vertexprop.all_neighbors[it2]) {
           ++it1;
         } else {
           ++it2;
@@ -233,7 +235,8 @@ class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_ty
   }
 
   bool send_message(const vertex_value_type& vertexprop, count_msg_type& message) const {
-    message = vertexprop;
+    //message = vertexprop;
+    message.v = vertexprop.out_neighbors;
     return true;
   }
 
