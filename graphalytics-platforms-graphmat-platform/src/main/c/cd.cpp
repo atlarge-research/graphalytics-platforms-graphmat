@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <iostream>
 #include <unordered_map>
+#include "boost/serialization/map.hpp"
+#include "boost/serialization/vector.hpp"
 
 #include "GraphMatRuntime.cpp"
 #include "common.hpp"
@@ -14,114 +16,41 @@
 
 using namespace std;
 
-class histogram;
+class custom_label_type;
 
 typedef int label_type;
 typedef label_type msg_type;
-typedef histogram reduce_type;
-typedef label_type vertex_value_type;
 
-class histogram {
-    const int TYPE_EMPTY = 1;
-    const int TYPE_ONE = 2;
-    const int TYPE_MANY = 3;
+template<typename T>
+class serializable_vector : public GMDP::Serializable {
+  public:
+    std::vector<T> v;
+  public:
+    friend boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive &ar, const unsigned int version) {
+      ar & v;
+    }
+};
+typedef serializable_vector<label_type> reduce_type;
+typedef custom_label_type vertex_value_type;
 
-    int type;
-    union {
-        unordered_map<label_type, int> *map;
-        label_type first_label;
-    } data;
-
+class custom_label_type {
     public:
-        histogram() {
-            type = TYPE_EMPTY;
-        }
-
-        void clear() {
-            if (type == TYPE_EMPTY) {
-                //
-            } else if (type == TYPE_ONE) {
-                type = TYPE_EMPTY;
-            } else if (type == TYPE_MANY) {
-                data.map->clear();
-            }
-        }
-
-        void _upgrade() {
-            if (type != TYPE_MANY) {
-                int old_type = type;
-                label_type old_label = data.first_label;
-
-                type = TYPE_MANY;
-                data.map = new unordered_map<label_type, int>();
-
-                if (old_type != TYPE_EMPTY) {
-                    add(old_label);
-                }
-            }
-        }
-
-        void add(const label_type label) {
-            if (type == TYPE_EMPTY) {
-                type = TYPE_ONE;
-                data.first_label = label;
-            } else {
-                _upgrade();
-                (*data.map)[label] += 1;
-            }
-        }
-
-        void merge(const histogram& other) {
-            if (other.type == TYPE_EMPTY) {
-                // nothing
-            } else if (other.type == TYPE_ONE) {
-                add(other.data.first_label);
-            } else {
-                _upgrade();
-                auto m = other.data.map;
-
-                for (auto it = m->cbegin(); it != m->cend(); it++) {
-                    (*data.map)[it->first] += it->second;
-                }
-            }
-        }
-
-        label_type most_common() const {
-            if (type == TYPE_EMPTY) {
-                return -1;
-            } else if (type == TYPE_ONE) {
-                return data.first_label;
-            } else {
-                auto m = data.map;
-
-                label_type best_label = -1;
-                int best_freq = 0;
-
-                for (auto it = m->cbegin(); it != m->cend(); it++) {
-                    label_type label = it->first;
-                    int freq = it->second;
-
-                    if (freq > best_freq || (freq == best_freq && label < best_label)) {
-                        best_label = label;
-                        best_freq = freq;
-                    }
-                }
-
-                return best_label;
-            }
-        }
-
-        histogram& operator=(const histogram &other) {
-            clear();
-            merge(other);
-            return *this;
-        }
-
-        ~histogram() {
-            if (type == TYPE_MANY) {
-                delete data.map;
-            }
-        }
+    	label_type label;
+	custom_label_type() : label(0) { }
+	custom_label_type(const int& x) : label(x) { }
+	bool operator!=(const custom_label_type& t) {
+		return label != t.label;
+	}
+	
+	label_type get_output() {
+		return label;
+	}
+	friend ostream& operator<<(ostream& out, const custom_label_type& t) {
+		out << t.label;
+		return out;
+	}
 };
 
 class CommunityDetectionProgram: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
@@ -129,24 +58,46 @@ class CommunityDetectionProgram: public GraphProgram<msg_type, reduce_type, vert
         CommunityDetectionProgram() {
             order = ALL_EDGES;
             activity = ALL_VERTICES;
+	    process_message_requires_vertexprop = false;
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
-            msg = vertex;
+            msg = vertex.label;
             return true;
         }
 
         void process_message(const msg_type& msg, const int edge, const vertex_value_type& vertex, reduce_type& result) const {
-            result.clear();
-            result.add(msg);
+            result.v.clear();
+            result.v.push_back(msg);
         }
 
         void reduce_function(reduce_type& total, const reduce_type& partial) const {
-            total.merge(partial);
+            total.v.insert(total.v.end(), partial.v.begin(), partial.v.end());
         }
 
         void apply(const reduce_type& total, vertex_value_type& vertex) {
-            vertex = total.most_common();
+	    assert(total.v.size() > 0);
+	    if (total.v.size() == 1) {
+		vertex = total.v[0];
+	    } else {
+		auto total_copy = total;
+		std::sort(total_copy.v.begin(), total_copy.v.end());
+	    	int max_freq = 1;
+            	label_type max_freq_label = total_copy.v[0];
+		int curr_freq = 1;
+	    	for (int i = 1; i <total_copy.v.size(); i++) {
+			if (total_copy.v[i] == total_copy.v[i-1])  {
+			  curr_freq++;
+			  if (curr_freq > max_freq) {
+			    max_freq = curr_freq;
+			    max_freq_label = total_copy.v[i];
+                          }
+			} else {
+			  curr_freq = 0;
+			}
+	    	}
+            	vertex = max_freq_label;
+	    }
         }
 };
 
@@ -156,12 +107,14 @@ int main(int argc, char *argv[]) {
         cerr << "usage: " << argv[0] << " <graph file> <niterations> [output file]" << endl;
         return EXIT_FAILURE;;
     }
+	
+    MPI_Init(&argc, &argv);
 
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     char *output = argc > 3 ? argv[3] : NULL;
 
-    nthreads = omp_get_max_threads();
+    int nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
@@ -183,10 +136,11 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("initialize engine");
-    graph.setAllActive();
 
-    for (size_t i = 1; i <= graph.nvertices; i++) {
-        graph.setVertexproperty(i, label_type(i));
+    for (size_t i = 1; i <= graph.getNumberOfVertices(); i++) {
+	if (graph.vertexNodeOwner(i)) {
+        	graph.setVertexproperty(i, label_type(i));
+	}
     }
 
     CommunityDetectionProgram prog;
@@ -210,7 +164,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("print output");
-    print_graph(output, graph);
+    print_graph<vertex_value_type, int, label_type>(output, graph, MPI_INT);
 
 #ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -225,6 +179,6 @@ int main(int argc, char *argv[]) {
     cout<<graphmatJob.getOperationInfo("EndTime", graphmatJob.getEpoch())<<endl;
 #endif
 
-
+    MPI_Finalize();
     return EXIT_SUCCESS;
 }
