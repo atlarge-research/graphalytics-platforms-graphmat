@@ -14,7 +14,7 @@ if (NOT GRAPHMAT_HOME)
 endif ()
 
 if (NOT GRAPHMAT_DIST_HOME)
-    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/GMDP)
+    set (GRAPHMAT_DIST_HOME ${GRAPHMAT_HOME}/include/GMDP)
 endif ()
 
 if (GRANULA)
@@ -36,18 +36,12 @@ include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 add_definitions (-DHAS_BOOST)
 
-include_directories(SYSTEM "${GRAPHMAT_HOME}/src")
+include_directories(SYSTEM "${GRAPHMAT_HOME}/include")
 include_directories(SYSTEM "${GRAPHMAT_DIST_HOME}")
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -qopenmp -xHost")
 set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -pedantic -Wextra -Wno-unused-variable -D__TIMING -D__DEBUG")
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo")
-
-add_definitions (-DUNSORTED)
-add_definitions (-DUNION_PARALLEL_SPA)
-add_definitions (-DINTERSECT_PARALLEL_SPA)
-add_definitions (-DSPGEMM_PARALLEL_SPA)
-add_definitions (-DFSPGEMM_PARALLEL_SPA)
 
 add_executable (bfs bfs.cpp)
 add_executable (pr pr.cpp)
@@ -58,4 +52,4 @@ add_executable (lcc lcc.cpp)
 TARGET_LINK_LIBRARIES(lcc ${Boost_LIBRARIES} )
 
 add_executable (sssp sssp.cpp)
-add_executable (graph_convert ${GRAPHMAT_HOME}/graph_utils/graph_convert.cpp)
+add_executable (graph_convert ${GRAPHMAT_HOME}/src/graph_converter.cpp)

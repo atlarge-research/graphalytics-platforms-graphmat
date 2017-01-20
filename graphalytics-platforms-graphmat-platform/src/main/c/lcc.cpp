@@ -5,7 +5,7 @@
 #include <iostream>
 #include "boost/serialization/vector.hpp"
 
-#include "GraphMatRuntime.cpp"
+#include "GraphMatRuntime.h"
 #include "common.hpp"
 
 #ifdef GRANULA
@@ -15,7 +15,7 @@
 using namespace std;
 
 
-struct vertex_value_type : public GMDP::Serializable {
+struct vertex_value_type : public GraphMat::Serializable {
   public:
     int id;
     int triangles;
@@ -67,7 +67,7 @@ struct vertex_value_type : public GMDP::Serializable {
 };
 
 template<typename T>
-class serializable_vector : public GMDP::Serializable {
+class serializable_vector : public GraphMat::Serializable {
   public:
     std::vector<T> v;
   public:
@@ -81,7 +81,7 @@ typedef serializable_vector<int> collect_reduce_type;
 typedef int collect_msg_type;
 
 
-class CollectNeighborsOutProgram: public GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
+class CollectNeighborsOutProgram: public GraphMat::GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
 
   public:
       int bitvector_size;
@@ -89,8 +89,8 @@ class CollectNeighborsOutProgram: public GraphProgram<collect_msg_type, collect_
 
 
   CollectNeighborsOutProgram(int maxvertices) {
-    order = IN_EDGES;
-    activity = ALL_VERTICES;
+    order = GraphMat::IN_EDGES;
+    activity = GraphMat::ALL_VERTICES;
     process_message_requires_vertexprop = false;
     bitvector_size = (maxvertices)/8 + 1; //for safety
   }
@@ -125,7 +125,7 @@ class CollectNeighborsOutProgram: public GraphProgram<collect_msg_type, collect_
   }
 
 };
-class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
+class CollectNeighborsInProgram: public GraphMat::GraphProgram<collect_msg_type, collect_reduce_type, vertex_value_type> {
 
   public:
       int bitvector_size;
@@ -133,8 +133,8 @@ class CollectNeighborsInProgram: public GraphProgram<collect_msg_type, collect_r
 
 
   CollectNeighborsInProgram(int maxvertices) {
-    order = OUT_EDGES;
-    activity = ALL_VERTICES;
+    order = GraphMat::OUT_EDGES;
+    activity = GraphMat::ALL_VERTICES;
     process_message_requires_vertexprop = false;
     bitvector_size = (maxvertices)/8 + 1; //for safety
 
@@ -178,13 +178,13 @@ typedef int count_reduce_type;
 //typedef vertex_value_type count_msg_type;
 typedef serializable_vector<int> count_msg_type;
 
-class CountTrianglesProgram: public GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
+class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
 
   public:
 
   CountTrianglesProgram() {
-    order = ALL_EDGES;
-    activity = ALL_VERTICES;
+    order = GraphMat::ALL_EDGES;
+    activity = GraphMat::ALL_VERTICES;
   }
 
   void reduce_function(count_reduce_type& v, const count_reduce_type& w) const {
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]) {
     timer_start();
 
     timer_next("load graph");
-    Graph<vertex_value_type, int> graph;
+    GraphMat::Graph<vertex_value_type, int> graph;
     graph.ReadMTX(filename);
 
 #ifdef GRANULA
@@ -297,9 +297,9 @@ int main(int argc, char *argv[]) {
     CollectNeighborsInProgram col_prog_in(graph.nvertices);
     CountTrianglesProgram cnt_prog;
 
-    auto col_ctx_out = graph_program_init(col_prog_out, graph);
-    auto col_ctx_in = graph_program_init(col_prog_in, graph);
-    auto cnt_ctx = graph_program_init(cnt_prog, graph);
+    auto col_ctx_out = GraphMat::graph_program_init(col_prog_out, graph);
+    auto col_ctx_in = GraphMat::graph_program_init(col_prog_in, graph);
+    auto cnt_ctx = GraphMat::graph_program_init(cnt_prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -307,11 +307,11 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm 1 - phase 1 & 2 (collect neighbors)");
-    run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
-    run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
+    GraphMat::run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
+    GraphMat::run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
 
     timer_next("run algorithm 2 (count triangles)");
-    run_graph_program(&cnt_prog, graph, 1, &cnt_ctx);
+    GraphMat::run_graph_program(&cnt_prog, graph, 1, &cnt_ctx);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -331,9 +331,9 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("deinitialize engine");
-    graph_program_clear(col_ctx_out);
-    graph_program_clear(col_ctx_in);
-    graph_program_clear(cnt_ctx);
+    GraphMat::graph_program_clear(col_ctx_out);
+    GraphMat::graph_program_clear(col_ctx_in);
+    GraphMat::graph_program_clear(cnt_ctx);
 
     timer_end();
 

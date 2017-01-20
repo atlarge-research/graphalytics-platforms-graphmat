@@ -1,4 +1,4 @@
-#include "GraphMatRuntime.cpp"
+#include "GraphMatRuntime.h"
 #include "common.hpp"
 
 #include <limits>
@@ -48,7 +48,7 @@ struct vertex_value_type {
         }
 };
 
-class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
+class BreadthFirstSearch: public GraphMat::GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
         depth_type current_depth;
 
@@ -57,8 +57,8 @@ class BreadthFirstSearch: public GraphProgram<msg_type, reduce_type, vertex_valu
     	    process_message_requires_vertexprop = false;
         }
 
-        edge_direction getOrder() const {
-            return OUT_EDGES;
+        GraphMat::edge_direction getOrder() const {
+            return GraphMat::OUT_EDGES;
         }
 
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    bool is_master = GMDP::get_global_myrank() == 0;
+    bool is_master = GraphMat::get_global_myrank() == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
     char *output = argc > 3 ? argv[3] : NULL;
@@ -115,7 +115,7 @@ int main(int argc, char *argv[]) {
     timer_start(is_master);
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    GraphMat::Graph<vertex_value_type> graph;
     //graph.ReadMTX(filename, nthreads * 4);
     graph.ReadMTX(filename);
 
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
     graph.setActive(source_vertex);
 
     BreadthFirstSearch prog;
-    auto ctx = graph_program_init(prog, graph);
+    auto ctx = GraphMat::graph_program_init(prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, -1);
+    GraphMat::run_graph_program(&prog, graph, GraphMat::UNTIL_CONVERGENCE, &ctx);
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
 
 
     timer_next("deinitialize engine");
-    graph_program_clear(ctx);
+    GraphMat::graph_program_clear(ctx);
 
     timer_end();
 

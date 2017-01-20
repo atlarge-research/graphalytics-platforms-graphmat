@@ -3,11 +3,9 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
-#include <unordered_map>
-#include "boost/serialization/map.hpp"
 #include "boost/serialization/vector.hpp"
 
-#include "GraphMatRuntime.cpp"
+#include "GraphMatRuntime.h"
 #include "common.hpp"
 
 #ifdef GRANULA
@@ -22,7 +20,7 @@ typedef int label_type;
 typedef label_type msg_type;
 
 template<typename T>
-class serializable_vector : public GMDP::Serializable {
+class serializable_vector : public GraphMat::Serializable {
   public:
     std::vector<T> v;
   public:
@@ -53,11 +51,11 @@ class custom_label_type {
 	}
 };
 
-class CommunityDetectionProgram: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
+class CommunityDetectionProgram: public GraphMat::GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
         CommunityDetectionProgram() {
-            order = ALL_EDGES;
-            activity = ALL_VERTICES;
+            order = GraphMat::ALL_EDGES;
+            activity = GraphMat::ALL_VERTICES;
 	    process_message_requires_vertexprop = false;
         }
 
@@ -128,7 +126,7 @@ int main(int argc, char *argv[]) {
     timer_start();
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    GraphMat::Graph<vertex_value_type> graph;
     graph.ReadMTX(filename, nthreads * 4);
 
 #ifdef GRANULA
@@ -144,7 +142,7 @@ int main(int argc, char *argv[]) {
     }
 
     CommunityDetectionProgram prog;
-    auto ctx = graph_program_init(prog, graph);
+    auto ctx = GraphMat::graph_program_init(prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -152,7 +150,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, niterations, &ctx);
+    GraphMat::run_graph_program(&prog, graph, niterations, &ctx);
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -171,7 +169,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("deinitialize engine");
-    graph_program_clear(ctx);
+    GraphMat::graph_program_clear(ctx);
 
     timer_end();
 
