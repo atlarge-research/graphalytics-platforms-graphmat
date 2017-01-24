@@ -1,4 +1,4 @@
-#include "GraphMatRuntime.cpp"
+#include "GraphMatRuntime.h"
 #include "common.hpp"
 
 #include <limits>
@@ -49,8 +49,11 @@ struct vertex_value_type {
         }
 };
 
-class SingleSourceShortestPath: public GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
+class SingleSourceShortestPath: public GraphMat::GraphProgram<msg_type, reduce_type, vertex_value_type, edge_value_type> {
     public:
+	SingleSourceShortestPath() {
+    	    process_message_requires_vertexprop = false;
+	}
         bool send_message(const vertex_value_type& vertex, msg_type& msg) const {
             msg = vertex.curr;
             return true;
@@ -78,13 +81,12 @@ int main(int argc, char *argv[]) {
 #endif
 
     MPI_Init(&argc, &argv);
-    GraphPad::GB_Init();
     if (argc < 3) {
         cerr << "usage: " << argv[0] << " <graph file> <source vertex> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
-    bool is_master = GraphPad::global_myrank == 0;
+    bool is_master = GraphMat::get_global_myrank() == 0;
     char *filename = argv[1];
     int source_vertex = atoi(argv[2]);
     string jobId = argc > 3 ? argv[3] : NULL;
@@ -92,8 +94,8 @@ int main(int argc, char *argv[]) {
 
     if (is_master) cout << "source vertex: " << source_vertex << endl;
 
-    nthreads = omp_get_max_threads();
-    if (is_master) cout << "num. threads: " << nthreads << endl;
+    //nthreads = omp_get_max_threads();
+    //if (is_master) cout << "num. threads: " << nthreads << endl;
 
 #ifdef GRANULA
     granula::linkNode(jobId);
@@ -108,8 +110,9 @@ int main(int argc, char *argv[]) {
     timer_start(is_master);
 
     timer_next("load graph");
-    Graph<vertex_value_type, edge_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    GraphMat::Graph<vertex_value_type, edge_value_type> graph;
+    //graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
@@ -126,7 +129,7 @@ int main(int argc, char *argv[]) {
     graph.setActive(source_vertex);
 
     SingleSourceShortestPath prog;
-    auto ctx = graph_program_init(prog, graph);
+    auto ctx = GraphMat::graph_program_init(prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -134,7 +137,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm");
-    run_graph_program(&prog, graph, -1);
+    GraphMat::run_graph_program(&prog, graph, GraphMat::UNTIL_CONVERGENCE, &ctx);
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -154,7 +157,7 @@ int main(int argc, char *argv[]) {
 
 
     timer_next("deinitialize engine");
-    graph_program_clear(ctx);
+    GraphMat::graph_program_clear(ctx);
 
     timer_end();
 

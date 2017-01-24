@@ -74,6 +74,7 @@ public class GraphMatPlatform implements Platform {
 	private String intermediateGraphFile;
 	private String graphFile;
 	private Long2LongMap vertexTranslation;
+        private boolean isDirected;
 
 	public GraphMatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
@@ -164,7 +165,7 @@ public class GraphMatPlatform implements Platform {
 
 
 		// Convert from intermediate format to MTX format
-		boolean isDirected = graph.getGraphFormat().isDirected();
+		isDirected = graph.getGraphFormat().isDirected();
 		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
 
@@ -211,12 +212,6 @@ public class GraphMatPlatform implements Platform {
 				break;
 			case WCC:
 				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation, benchmark.getId());
-				break;
-			case CDLP:
-				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmark.getId());
-				break;
-			case LCC:
-				job = new LocalClusteringCoefficientJob(config, graphFile, vertexTranslation, benchmark.getId());
 				break;
 			case SSSP:
 				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmark.getId());
