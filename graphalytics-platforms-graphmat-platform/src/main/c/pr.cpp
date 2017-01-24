@@ -1,4 +1,4 @@
-#include "GraphMatRuntime.cpp"
+#include "GraphMatRuntime.h"
 #include "common.hpp"
 
 #include <algorithm>
@@ -48,11 +48,11 @@ struct vertex_value_type {
         }
 };
 
-class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
+class OutDegreeProgram: public GraphMat::GraphProgram<int, int, vertex_value_type> {
     public:
         OutDegreeProgram() {
-            order = IN_EDGES;
-            activity = ALL_VERTICES;
+            order = GraphMat::IN_EDGES;
+            activity = GraphMat::ALL_VERTICES;
     	    process_message_requires_vertexprop = false;
         }
 
@@ -75,11 +75,11 @@ class OutDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
 
 };
 
-class InDegreeProgram: public GraphProgram<int, int, vertex_value_type> {
+class InDegreeProgram: public GraphMat::GraphProgram<int, int, vertex_value_type> {
     public:
         InDegreeProgram() {
-            order = OUT_EDGES;
-            activity = ALL_VERTICES;
+            order = GraphMat::OUT_EDGES;
+            activity = GraphMat::ALL_VERTICES;
     	    process_message_requires_vertexprop = false;
         }
 
@@ -132,15 +132,15 @@ void update_zero_degree_vertices(vertex_value_type* v, score_type* res, void* pa
   }
 }
 
-class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_type> {
+class PageRankProgram: public GraphMat::GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
         double damping_factor;
         score_type dangling_sum;
-        Graph<vertex_value_type>& graph;
+        GraphMat::Graph<vertex_value_type>& graph;
 
-        PageRankProgram(Graph<vertex_value_type> &g, double df): graph(g), damping_factor(df) {
-            order = OUT_EDGES;
-            activity = ALL_VERTICES;
+        PageRankProgram(GraphMat::Graph<vertex_value_type> &g, double df): graph(g), damping_factor(df) {
+            order = GraphMat::OUT_EDGES;
+            activity = GraphMat::ALL_VERTICES;
     	    process_message_requires_vertexprop = false;
         }
 
@@ -175,17 +175,6 @@ class PageRankProgram: public GraphProgram<msg_type, reduce_type, vertex_value_t
             //Fix vertices with 0 in and out degrees here.
             score_type next_dangling_sum = 0.0;
 
-            /*#pragma omp parallel for reduction(+:next_dangling_sum)
-            for (size_t i = 0; i < graph.nvertices; i++) {
-                if (graph.vertexproperty[i].out_degree == 0) {
-                    next_dangling_sum += graph.vertexproperty[i].score;
-                }
-
-                if (graph.vertexproperty[i].in_degree == 0) {
-                    graph.vertexproperty[i].score = (1 - damping_factor +
-                                                damping_factor*dangling_sum) / graph.nvertices;
-                }
-            }*/
             struct param param_t;
             param_t.damping_factor = damping_factor;
             param_t.dangling_sum = dangling_sum;
@@ -209,7 +198,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    bool is_master = GMDP::get_global_myrank() == 0;
+    bool is_master = GraphMat::get_global_myrank() == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     double damping_factor = argc > 3 ? atof(argv[3]) : 0.85;
@@ -234,7 +223,7 @@ int main(int argc, char *argv[]) {
     timer_start(is_master);
 
     timer_next("load graph");
-    Graph<vertex_value_type> graph;
+    GraphMat::Graph<vertex_value_type> graph;
     //graph.ReadMTX(filename, nthreads * 4);
     graph.ReadMTX(filename);
 
@@ -246,13 +235,13 @@ int main(int argc, char *argv[]) {
     graph.setAllActive();
 
     OutDegreeProgram out_deg_prog;
-    auto ctx1 = graph_program_init(out_deg_prog, graph);
+    auto ctx1 = GraphMat::graph_program_init(out_deg_prog, graph);
 
     InDegreeProgram in_deg_prog;
-    auto ctx2 = graph_program_init(in_deg_prog, graph);
+    auto ctx2 = GraphMat::graph_program_init(in_deg_prog, graph);
 
     PageRankProgram pr_prog(graph, damping_factor);
-    auto ctx3 = graph_program_init(pr_prog, graph);
+    auto ctx3 = GraphMat::graph_program_init(pr_prog, graph);
 
 #ifdef GRANULA
     granula::operation processGraph("GraphMat", "Id.Unique", "ProcessGraph", "Id.Unique");
@@ -260,14 +249,14 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("run algorithm 1 (count degree)");
-    run_graph_program(&out_deg_prog, graph, 1);
-    run_graph_program(&in_deg_prog, graph, 1);
+    GraphMat::run_graph_program(&out_deg_prog, graph, 1, &ctx1);
+    GraphMat::run_graph_program(&in_deg_prog, graph, 1, &ctx2);
 
     timer_next("initialize vertices");
     pr_prog.init();
 
     timer_next("run algorithm 2 (compute PageRank)");
-    run_graph_program(&pr_prog, graph, niterations);
+    GraphMat::run_graph_program(&pr_prog, graph, niterations, &ctx3);
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -286,9 +275,9 @@ int main(int argc, char *argv[]) {
 #endif
 
     timer_next("deinitialize engine");
-    graph_program_clear(ctx1);
-    graph_program_clear(ctx2);
-    graph_program_clear(ctx3);
+    GraphMat::graph_program_clear(ctx1);
+    GraphMat::graph_program_clear(ctx2);
+    GraphMat::graph_program_clear(ctx3);
 
     timer_end();
 
