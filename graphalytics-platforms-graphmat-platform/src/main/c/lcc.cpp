@@ -276,16 +276,17 @@ int main(int argc, char *argv[]) {
     granula::startMonitorProcess(getpid());
 #endif
 
-    if (argc < 3) {
-        cerr << "usage: " << argv[0] << " <graph file> <isDirected> [output file]" << endl;
+    if (argc < 4) {
+        cerr << "usage: " << argv[0] << " <graph file> <job id> <isDirected> [output file]" << endl;
         return EXIT_FAILURE;
     }
 
     MPI_Init(&argc, &argv);
 
     char *filename = argv[1];
-    int isDirected = atoi(argv[2]);
-    char *output = argc > 3 ? argv[3] : NULL;
+	string jobId = argc > 2 ? argv[2] : "DefaultJobId";
+    int isDirected = argc > 3 ? atoi(argv[3]) : NULL;
+    char *output = argc > 4 ? argv[4] : NULL;
 
     int nthreads = omp_get_max_threads();
     cout << "num. threads: " << nthreads << endl;
