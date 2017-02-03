@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include "boost/serialization/vector.hpp"
+#include "boost/serialization/utility.hpp"
 
 #include "GraphMatRuntime.h"
 #include "common.hpp"
@@ -173,10 +174,12 @@ class CollectNeighborsInProgram: public GraphMat::GraphProgram<collect_msg_type,
 
 };
 
-typedef int count_reduce_type;
+//typedef int count_reduce_type;
+typedef vertex_value_type count_msg_type;
 //typedef const vertex_value_type* count_msg_type;
 //typedef vertex_value_type count_msg_type;
-typedef serializable_vector<int> count_msg_type;
+//typedef serializable_vector<int> count_msg_type;
+typedef serializable_vector<pair< int, int> > count_reduce_type;
 
 class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
 
@@ -187,14 +190,16 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
     activity = GraphMat::ALL_VERTICES;
   }
 
-  void reduce_function(count_reduce_type& v, const count_reduce_type& w) const {
-    v += w;
+  void reduce_function(count_reduce_type& a, const count_reduce_type& b) const {
+    //v += w;
+    a.v.insert(a.v.end(), b.v.begin(), b.v.end()); 
   }
 
   void process_message(const count_msg_type& message, const int edge_val, const vertex_value_type& vertexprop, count_reduce_type& res) const {
-    count_reduce_type tri = 0;
+    //count_reduce_type tri = 0;
+    int tri = 0;
     //const vertex_value_type& neighbor = *message;
-    //const vertex_value_type& neighbor(message);
+    const vertex_value_type& neighbor(message);
     
     /*char* bv;
     std::vector<int>::const_iterator itb, ite;
@@ -214,15 +219,17 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
       }
     } else {*/
       int it1 = 0, it2 = 0;
-      //int it1_end = neighbor.out_neighbors.size();
-      int it1_end = message.v.size();
+      int it1_end = neighbor.out_neighbors.size();
+      //int it1_end = message.v.size();
       int it2_end = vertexprop.all_neighbors.size();
 
       while (it1 != it1_end && it2 != it2_end){
-        if (message.v[it1] == vertexprop.all_neighbors[it2]) {
+        //if (message.v[it1] == vertexprop.all_neighbors[it2]) {
+        if (neighbor.out_neighbors[it1] == vertexprop.all_neighbors[it2]) {
           tri++;
           ++it1; ++it2;
-        } else if (message.v[it1] < vertexprop.all_neighbors[it2]) {
+        //} else if (message.v[it1] < vertexprop.all_neighbors[it2]) {
+        } else if (neighbor.out_neighbors[it1] < vertexprop.all_neighbors[it2]) {
           ++it1;
         } else {
           ++it2;
@@ -230,21 +237,34 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
       } 
     //} 
 
-    res = tri;
+    //res = tri;
+    int id = neighbor.id;
+    auto x = make_pair(id, tri);
+    res.v.clear(); 
+    res.v.push_back(x); 
+
     return;
   }
 
   bool send_message(const vertex_value_type& vertexprop, count_msg_type& message) const {
-    //message = vertexprop;
-    message.v = vertexprop.out_neighbors;
+    message = vertexprop;
+    //message.v = vertexprop.out_neighbors;
     return true;
   }
 
   void apply(const count_reduce_type& message_out, vertex_value_type& vertexprop) {
-    vertexprop.triangles = message_out;
+    //vertexprop.triangles = message_out;
+      auto v = message_out.v;
+      std::sort(v.begin(), v.end());
+      auto last = unique(v.begin(), v.end());
+     int sum_of_elems = 0;
+     std::for_each(v.begin(), last, [&] (pair<int, int> n) {
+      sum_of_elems += n.second;
+     });
+    vertexprop.triangles = sum_of_elems;
     int deg = vertexprop.all_neighbors.size();
     //vertexprop.clustering_coef = (deg > 1)?(2.0*(double)message_out/(double)(deg*(deg-1))):(0.0);
-    vertexprop.clustering_coef = (deg > 1)?(0.5*(double)message_out/(double)(deg*(deg-1))):(0.0);
+    vertexprop.clustering_coef = (deg > 1)?((double)vertexprop.triangles/(double)(deg)/(double)(deg-1)):(0.0);
   }
 
 };
@@ -332,7 +352,14 @@ int main(int argc, char *argv[]) {
     timer_next("print output");
     //print_graph(output, graph);
     print_graph<vertex_value_type, int, double>(output, graph, MPI_DOUBLE);
-
+  /*MPI_Barrier(MPI_COMM_WORLD);
+  for (int i = 1; i <= graph.getNumberOfVertices(); i++) { 
+    if (graph.vertexNodeOwner(i)) {
+      printf("%d %f %d\n", i-1, graph.getVertexproperty(i).clustering_coef, graph.getVertexproperty(i).all_neighbors.size());
+    }
+    fflush(stdout);
+    MPI_Barrier(MPI_COMM_WORLD);
+  }*/
 #ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
 #endif

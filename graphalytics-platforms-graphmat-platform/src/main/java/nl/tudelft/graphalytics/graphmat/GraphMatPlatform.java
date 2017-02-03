@@ -111,8 +111,8 @@ public class GraphMatPlatform implements Platform {
 
 	private void setupGraph(Graph graph) throws Exception {
 
-		String intermediateFile = createIntermediateFile(graph.getName(), ".txt");
-		String outputFile = createIntermediateFile(graph.getName(), ".mtx");
+		String intermediateFile = createIntermediateFile(graph.getName(), "txt0");
+		String outputFile = createIntermediateFile(graph.getName(), "mtx");
 
 
 		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
@@ -131,8 +131,8 @@ public class GraphMatPlatform implements Platform {
 			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
 		}
 
-		String intermediateFile = createIntermediateFile(graph.getName(), ".txt");
-		String outputFile = createIntermediateFile(graph.getName(), ".mtx");
+		String intermediateFile = createIntermediateFile(graph.getName(), "txt0");
+		String outputFile = createIntermediateFile(graph.getName(), "mtx");
 
 		// Convert from Graphalytics VE format to intermediate format
 		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
@@ -180,8 +180,9 @@ public class GraphMatPlatform implements Platform {
 		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
 		args.add("--outputedgeweights=" + (isWeighted ? "1" : "2"));
 		args.add("--edgeweighttype=" + weightType);
-		args.add("--split=16");
-		args.add(intermediateFile);
+		//args.add("--split=16");
+		//args.add(intermediateFile);
+		args.add(intermediateFile.substring(0, intermediateFile.length()-1));
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
 
@@ -216,6 +217,12 @@ public class GraphMatPlatform implements Platform {
 			case SSSP:
 				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmark.getId());
 				break;
+			case CDLP:
+				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmark.getId());
+				break;
+			case LCC:
+				job = new LocalClusteringCoefficientJob(config, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmark.getId());
+				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
@@ -225,7 +232,7 @@ public class GraphMatPlatform implements Platform {
 
 		try{
 			if (outputEnabled) {
-				intermediateOutputPath = createIntermediateFile("output", "txt");
+				intermediateOutputPath = createIntermediateFile("output", "txt0");
 				job.setOutputPath(intermediateOutputPath);
 			}
 
