@@ -19,7 +19,7 @@ using namespace std;
 struct vertex_value_type : public GraphMat::Serializable {
   public:
     int id;
-    int triangles;
+    //int triangles;
     std::vector<int> all_neighbors;
     std::vector<int> out_neighbors;
     double clustering_coef;
@@ -28,7 +28,7 @@ struct vertex_value_type : public GraphMat::Serializable {
   public:
     vertex_value_type() {
       id = -1;
-      triangles = 0;
+      //triangles = 0;
       all_neighbors.clear();
       out_neighbors.clear();
       //all_bitvector = NULL;
@@ -40,12 +40,12 @@ struct vertex_value_type : public GraphMat::Serializable {
 	clustering_coef = coef;
     }
     bool operator!=(const vertex_value_type& t) const {
-      return (t.triangles != this->triangles); //dummy
+      return (true); //dummy
     }
     ~vertex_value_type() {
       all_neighbors.clear();
       out_neighbors.clear();
-      triangles = 0;
+      //triangles = 0;
     }
     friend ostream& operator<<(ostream& stream, const vertex_value_type &v) {
             stream << v.clustering_coef;
@@ -59,7 +59,7 @@ struct vertex_value_type : public GraphMat::Serializable {
     template<class Archive>
     void serialize(Archive &ar, const unsigned int version) {
 	ar & id;
-	ar & triangles;
+	//ar & triangles;
 	ar & all_neighbors;
 	ar & out_neighbors;
 	ar & clustering_coef;
@@ -87,9 +87,11 @@ class CollectNeighborsOutProgram: public GraphMat::GraphProgram<collect_msg_type
   public:
       int bitvector_size;
       const int num_neighbors_threshold = 1024;
+      bool isDirected;
 
 
-  CollectNeighborsOutProgram(int maxvertices) {
+  CollectNeighborsOutProgram(int maxvertices, bool _isDirected) {
+    isDirected = _isDirected;
     order = GraphMat::IN_EDGES;
     activity = GraphMat::ALL_VERTICES;
     process_message_requires_vertexprop = false;
@@ -111,8 +113,14 @@ class CollectNeighborsOutProgram: public GraphMat::GraphProgram<collect_msg_type
     return true;
   }
   void apply(const collect_reduce_type& message_out, vertex_value_type& vertexprop) {
-    vertexprop.all_neighbors = message_out.v;
-    vertexprop.out_neighbors = message_out.v;
+    if (isDirected) {
+      vertexprop.all_neighbors = message_out.v;
+      vertexprop.out_neighbors = message_out.v;
+      std::sort(vertexprop.out_neighbors.begin(), vertexprop.out_neighbors.end());
+    } else {
+      vertexprop.all_neighbors = message_out.v;
+      std::sort(vertexprop.all_neighbors.begin(), vertexprop.all_neighbors.end());
+    }
 
     /*if (vertexprop.out_neighbors.size() > num_neighbors_threshold) {
       vertexprop.out_bitvector = new char[bitvector_size]();
@@ -120,7 +128,6 @@ class CollectNeighborsOutProgram: public GraphMat::GraphProgram<collect_msg_type
         set_bit(*it, vertexprop.out_bitvector);
       }
     } else {*/
-      std::sort(vertexprop.out_neighbors.begin(), vertexprop.out_neighbors.end());
     //}
 
   }
@@ -184,9 +191,11 @@ typedef serializable_vector<pair< int, int> > count_reduce_type;
 class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count_reduce_type, vertex_value_type> {
 
   public:
+  bool isDirected;
 
-  CountTrianglesProgram() {
-    order = GraphMat::ALL_EDGES;
+  CountTrianglesProgram(bool _isDirected) {
+    isDirected = _isDirected;
+    order = (isDirected) ? (GraphMat::ALL_EDGES) : (GraphMat::OUT_EDGES);
     activity = GraphMat::ALL_VERTICES;
   }
 
@@ -219,17 +228,18 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
       }
     } else {*/
       int it1 = 0, it2 = 0;
-      int it1_end = neighbor.out_neighbors.size();
+      const auto* neighbor_vector = (isDirected)? &(neighbor.out_neighbors) : &(neighbor.all_neighbors);
+      int it1_end = neighbor_vector->size();
       //int it1_end = message.v.size();
       int it2_end = vertexprop.all_neighbors.size();
 
       while (it1 != it1_end && it2 != it2_end){
         //if (message.v[it1] == vertexprop.all_neighbors[it2]) {
-        if (neighbor.out_neighbors[it1] == vertexprop.all_neighbors[it2]) {
+        if (neighbor_vector->data()[it1] == vertexprop.all_neighbors[it2]) {
           tri++;
           ++it1; ++it2;
         //} else if (message.v[it1] < vertexprop.all_neighbors[it2]) {
-        } else if (neighbor.out_neighbors[it1] < vertexprop.all_neighbors[it2]) {
+        } else if (neighbor_vector->data()[it1] < vertexprop.all_neighbors[it2]) {
           ++it1;
         } else {
           ++it2;
@@ -254,17 +264,19 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
 
   void apply(const count_reduce_type& message_out, vertex_value_type& vertexprop) {
     //vertexprop.triangles = message_out;
-      auto v = message_out.v;
+    auto v = message_out.v;
+    auto last = v.end();
+    if (isDirected) { 
       std::sort(v.begin(), v.end());
-      auto last = unique(v.begin(), v.end());
-     int sum_of_elems = 0;
-     std::for_each(v.begin(), last, [&] (pair<int, int> n) {
+      last = unique(v.begin(), v.end());
+    } 
+    
+    int sum_of_elems = 0;
+    std::for_each(v.begin(), last, [&] (pair<int, int> n) {
       sum_of_elems += n.second;
-     });
-    vertexprop.triangles = sum_of_elems;
+    });
     int deg = vertexprop.all_neighbors.size();
-    //vertexprop.clustering_coef = (deg > 1)?(2.0*(double)message_out/(double)(deg*(deg-1))):(0.0);
-    vertexprop.clustering_coef = (deg > 1)?((double)vertexprop.triangles/(double)(deg)/(double)(deg-1)):(0.0);
+    vertexprop.clustering_coef = (deg > 1)?((double)(sum_of_elems)/(double)(deg)/(double)(deg-1)):(0.0);
   }
 
 };
@@ -285,7 +297,8 @@ int main(int argc, char *argv[]) {
 
     char *filename = argv[1];
 	string jobId = argc > 2 ? argv[2] : "DefaultJobId";
-    int isDirected = argc > 3 ? atoi(argv[3]) : NULL;
+    //int isDirected = argc > 3 ? atoi(argv[3]) : NULL;
+    bool isDirected = argc > 3 ? bool(atoi(argv[3])) : false;
     char *output = argc > 4 ? argv[4] : NULL;
 
     int nthreads = omp_get_max_threads();
@@ -321,9 +334,9 @@ int main(int argc, char *argv[]) {
     }
 
 
-    CollectNeighborsOutProgram col_prog_out(graph.nvertices);
+    CollectNeighborsOutProgram col_prog_out(graph.nvertices, isDirected);
     CollectNeighborsInProgram col_prog_in(graph.nvertices);
-    CountTrianglesProgram cnt_prog;
+    CountTrianglesProgram cnt_prog(isDirected);
 
     auto col_ctx_out = GraphMat::graph_program_init(col_prog_out, graph);
     auto col_ctx_in = GraphMat::graph_program_init(col_prog_in, graph);
@@ -336,7 +349,7 @@ int main(int argc, char *argv[]) {
 
     timer_next("run algorithm 1 - phase 1 & 2 (collect neighbors)");
     GraphMat::run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
-    GraphMat::run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
+    if(isDirected) GraphMat::run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
 
     timer_next("run algorithm 2 (count triangles)");
     GraphMat::run_graph_program(&cnt_prog, graph, 1, &cnt_ctx);
