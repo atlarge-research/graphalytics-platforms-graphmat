@@ -1,5 +1,8 @@
 # Graphalytics GraphMat platform extension
 
+## Note on support
+
+Current development is happening in the [dataformat-granula-distr branch](https://github.com/tudelft-atlarge/graphalytics-platforms-graphmat/tree/dataformat-granula-distr). We are adapting the code to the latest [GraphMat](https://github.com/narayanan2004/GraphMat/tree/distributed_primitives_integration) and [Graphalytics](https://github.com/ldbc/ldbc_graphalytics/tree/dataformat-granula) APIs. However, the code is not yet stable; we hope to have a release in February 2016. Unfortunately, we do not have the resources to address issues in the older code in the master branch.
 
 ## Getting started
 
