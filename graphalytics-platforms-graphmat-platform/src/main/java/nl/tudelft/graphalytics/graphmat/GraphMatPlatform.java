@@ -74,7 +74,6 @@ public class GraphMatPlatform implements Platform {
 	private String intermediateGraphFile;
 	private String graphFile;
 	private Long2LongMap vertexTranslation;
-        private boolean isDirected;
 
 	public GraphMatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
@@ -165,7 +164,7 @@ public class GraphMatPlatform implements Platform {
 
 
 		// Convert from intermediate format to MTX format
-		isDirected = graph.getGraphFormat().isDirected();
+		boolean isDirected = graph.isDirected();
 		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
 
@@ -203,6 +202,7 @@ public class GraphMatPlatform implements Platform {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		boolean isDirected = benchmark.getGraph().isDirected();
 
 		switch (algorithm) {
 			case BFS:
