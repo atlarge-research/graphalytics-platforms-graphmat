@@ -120,6 +120,7 @@
 						<exclude>src/test/resources/**</exclude>
 						<exclude>src/main/resources/**</exclude>
 						<exclude>src/main/assembly/**</exclude>
+						<exclude>src/main/c/**</exclude>
 						<exclude>config-template/**</exclude>
 					</excludes>
 					<mapping>
