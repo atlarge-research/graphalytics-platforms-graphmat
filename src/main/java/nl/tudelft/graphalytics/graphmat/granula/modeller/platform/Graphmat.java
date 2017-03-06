@@ -31,9 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GraphMat extends PlatformModel {
+public class Graphmat extends PlatformModel {
 
-    public GraphMat() {
+    public Graphmat() {
         super();
         addOperationModel(new GraphmatJob());
         addOperationModel(new LoadGraph());

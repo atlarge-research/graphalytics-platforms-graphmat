@@ -4,8 +4,8 @@ import nl.tudelft.granula.archiver.GranulaArchiver;
 import nl.tudelft.granula.modeller.entity.BasicType.ArchiveFormat;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.job.Overview;
+import nl.tudelft.granula.modeller.platform.Graphmat;
 import nl.tudelft.granula.modeller.source.JobDirectorySource;
-import nl.tudelft.granula.modeller.platform.GraphMat;
 
 /**
  * Created by wing on 21-8-15.
@@ -27,7 +27,7 @@ public class ModelTester {
         overview.setDescription("A GraphMat.D Job");
 
         GranulaArchiver granulaArchiver = new GranulaArchiver(
-                jobDirSource, new JobModel(new GraphMat()), outputPath, ArchiveFormat.JS);
+                jobDirSource, new JobModel(new Graphmat()), outputPath, ArchiveFormat.JS);
         granulaArchiver.setOverview(overview);
         granulaArchiver.archive();
 

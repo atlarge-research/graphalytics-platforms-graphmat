@@ -20,9 +20,9 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;
+import nl.tudelft.graphalytics.graphmat.GraphmatJob;
 
-public class WeaklyConnectedComponentsJob extends GraphMatJob {
+public class WeaklyConnectedComponentsJob extends GraphmatJob {
 
 	public WeaklyConnectedComponentsJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);

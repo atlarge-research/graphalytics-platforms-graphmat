@@ -49,11 +49,11 @@ if [ -z $GRAPHMAT_HOME ]; then
 fi
 
 mkdir -p bin/standard
-(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
 
 if [ "$GRANULA_ENABLED" = "true" ] ; then
  mkdir -p bin/granula
- (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+ (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src/main/c -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
 fi
 
 if [ $? -ne 0 ]

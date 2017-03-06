@@ -21,7 +21,7 @@ import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;	
+import nl.tudelft.graphalytics.graphmat.GraphmatJob;
 
 /**
  * PR
@@ -29,7 +29,7 @@ import nl.tudelft.graphalytics.graphmat.GraphMatJob;
  * @author Wing Lung Ngai
  * @author Tim Hegeman
  */
-public final class PageRankJob extends GraphMatJob {
+public final class PageRankJob extends GraphmatJob {
 
 	private final PageRankParameters params;
 	

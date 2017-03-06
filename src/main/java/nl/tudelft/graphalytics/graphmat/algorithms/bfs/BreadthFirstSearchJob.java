@@ -16,14 +16,12 @@
 package nl.tudelft.graphalytics.graphmat.algorithms.bfs;
 
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;
+import nl.tudelft.graphalytics.graphmat.GraphmatJob;
 
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.exec.CommandLine;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 
-import java.nio.file.Paths;
 import java.util.List;
 
 /**
@@ -33,7 +31,7 @@ import java.util.List;
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class BreadthFirstSearchJob extends GraphMatJob {
+public final class BreadthFirstSearchJob extends GraphmatJob {
 
 	private final BreadthFirstSearchParameters params;
 

@@ -15,39 +15,34 @@
  */
 package nl.tudelft.graphalytics.graphmat;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+import nl.tudelft.granula.archiver.PlatformArchive;
+import nl.tudelft.granula.modeller.job.JobModel;
+import nl.tudelft.granula.modeller.platform.Graphmat;
 import nl.tudelft.graphalytics.BenchmarkMetrics;
+import nl.tudelft.graphalytics.domain.*;
+import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.Platform;
 import nl.tudelft.graphalytics.PlatformExecutionException;
-import nl.tudelft.graphalytics.domain.Algorithm;
-import nl.tudelft.graphalytics.domain.Benchmark;
-import nl.tudelft.graphalytics.domain.Graph;
-import nl.tudelft.graphalytics.domain.NestedConfiguration;
-import nl.tudelft.graphalytics.domain.PlatformBenchmarkResult;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
 import nl.tudelft.graphalytics.domain.graph.PropertyList;
 import nl.tudelft.graphalytics.domain.graph.PropertyType;
 import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
 import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
+import org.json.simple.JSONObject;
 
 /**
  * GraphMat platform integration for the Graphalytics benchmark.
@@ -55,9 +50,8 @@ import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponents
  * @author Yong Guo
  * @author Tim Hegeman
  */
-public class GraphMatPlatform implements Platform {
+public class GraphmatPlatform implements GranulaAwarePlatform {
 
-	private static final Logger LOG = LogManager.getLogger();
 
 	public static final String PLATFORM_NAME = "graphmat";
 	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
@@ -76,7 +70,12 @@ public class GraphMatPlatform implements Platform {
 	private Long2LongMap vertexTranslation;
         private boolean isDirected;
 
-	public GraphMatPlatform() {
+
+	private static final Logger LOG = LogManager.getLogger();
+	private static PrintStream console;
+
+
+	public GraphmatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
 
 		try {
@@ -85,6 +84,7 @@ public class GraphMatPlatform implements Platform {
 			LOG.warn("Could not find or load \"{}\"", PROPERTIES_FILENAME);
 			config = new PropertiesConfiguration();
 		}
+		BINARY_DIRECTORY = "./bin/granula";
 	}
 
 	private String createIntermediateFile(String name, String extension) throws IOException {
@@ -195,7 +195,7 @@ public class GraphMatPlatform implements Platform {
 
 		Algorithm algorithm = benchmark.getAlgorithm();
 		Object params = benchmark.getAlgorithmParameters();
-		GraphMatJob job;
+		GraphmatJob job;
 
 		try {
 			setupGraph(benchmark.getGraph());
@@ -302,5 +302,54 @@ public class GraphMatPlatform implements Platform {
 	@Override
 	public NestedConfiguration getPlatformConfiguration() {
 		return NestedConfiguration.fromExternalConfiguration(config, PROPERTIES_FILENAME);
+	}
+
+
+	@Override
+	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
+		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
+	}
+
+	@Override
+	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+		stopPlatformLogging();
+	}
+
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Graphmat());
+	}
+
+	@Override
+	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			metrics.setProcessingTime(procTime);
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
+		}
+	}
+
+	public static void startPlatformLogging(Path fileName) {
+		console = System.out;
+		try {
+			File file = null;
+			file = fileName.toFile();
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			FileOutputStream fos = new FileOutputStream(file);
+			PrintStream ps = new PrintStream(fos);
+			System.setOut(ps);
+		} catch(Exception e) {
+			e.printStackTrace();
+			throw new IllegalArgumentException("cannot redirect to output file");
+		}
+	}
+
+	public static void stopPlatformLogging() {
+		System.setOut(console);
 	}
 }

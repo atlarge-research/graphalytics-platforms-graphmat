@@ -20,9 +20,9 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;
+import nl.tudelft.graphalytics.graphmat.GraphmatJob;
 
-public class LocalClusteringCoefficientJob extends GraphMatJob {
+public class LocalClusteringCoefficientJob extends GraphmatJob {
 
         private String isDirected;
 

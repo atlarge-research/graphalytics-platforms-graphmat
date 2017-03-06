@@ -20,11 +20,10 @@ import java.util.List;
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
-import nl.tudelft.graphalytics.graphmat.GraphMatJob;
+import nl.tudelft.graphalytics.graphmat.GraphmatJob;
 
-public class CommunityDetectionLPJob extends GraphMatJob {
+public class CommunityDetectionLPJob extends GraphmatJob {
 
 	private final CommunityDetectionLPParameters params;
 
