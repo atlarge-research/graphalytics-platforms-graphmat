@@ -44,12 +44,22 @@ set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -Wall -pedantic -Wextra 
 set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -ipo")
 
 add_executable (bfs bfs.cpp)
+TARGET_LINK_LIBRARIES(bfs ${Boost_LIBRARIES} )
+
 add_executable (pr pr.cpp)
+TARGET_LINK_LIBRARIES(pr ${Boost_LIBRARIES} )
+
 add_executable (conn conn.cpp)
+TARGET_LINK_LIBRARIES(conn ${Boost_LIBRARIES} )
+
 add_executable (cd cd.cpp)
 TARGET_LINK_LIBRARIES(cd ${Boost_LIBRARIES} )
+
 add_executable (lcc lcc.cpp)
 TARGET_LINK_LIBRARIES(lcc ${Boost_LIBRARIES} )
 
 add_executable (sssp sssp.cpp)
+TARGET_LINK_LIBRARIES(sssp ${Boost_LIBRARIES} )
+
 add_executable (graph_convert ${GRAPHMAT_HOME}/src/graph_converter.cpp)
+TARGET_LINK_LIBRARIES(graph_convert ${Boost_LIBRARIES} )
