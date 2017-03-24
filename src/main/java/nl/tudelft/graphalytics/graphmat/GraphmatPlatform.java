@@ -17,14 +17,19 @@ package nl.tudelft.graphalytics.graphmat;
 
 import java.io.*;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Graphmat;
-import nl.tudelft.graphalytics.BenchmarkMetrics;
-import nl.tudelft.graphalytics.domain.*;
+import nl.tudelft.graphalytics.report.result.BenchmarkMetrics;
+import nl.tudelft.graphalytics.domain.algorithms.Algorithm;
+import nl.tudelft.graphalytics.report.result.BenchmarkResult;
+import nl.tudelft.graphalytics.domain.benchmark.BenchmarkRun;
+import nl.tudelft.graphalytics.report.result.PlatformBenchmarkResult;
+import nl.tudelft.graphalytics.domain.graph.Graph;
 import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
@@ -32,7 +37,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.PlatformExecutionException;
+import nl.tudelft.graphalytics.execution.PlatformExecutionException;
 import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
 import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
@@ -165,7 +170,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 
 		// Convert from intermediate format to MTX format
-		isDirected = graph.getGraphFormat().isDirected();
+		isDirected = graph.isDirected();
 		String cmdFormat = config.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
 
@@ -191,37 +196,37 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public PlatformBenchmarkResult executeAlgorithmOnGraph(Benchmark benchmark) throws PlatformExecutionException {
+	public PlatformBenchmarkResult execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
-		Algorithm algorithm = benchmark.getAlgorithm();
-		Object params = benchmark.getAlgorithmParameters();
+		Algorithm algorithm = benchmarkRun.getAlgorithm();
+		Object params = benchmarkRun.getAlgorithmParameters();
 		GraphmatJob job;
 
 		try {
-			setupGraph(benchmark.getGraph());
+			setupGraph(benchmarkRun.getGraph());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmark.getId());
+				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmarkRun.getId());
 				break;
 			case PR:
-				job = new PageRankJob(config, graphFile, vertexTranslation, (PageRankParameters) params, benchmark.getId());
+				job = new PageRankJob(config, graphFile, vertexTranslation, (PageRankParameters) params, benchmarkRun.getId());
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation, benchmark.getId());
+				job = new WeaklyConnectedComponentsJob(config, graphFile, vertexTranslation, benchmarkRun.getId());
 				break;
 			case SSSP:
-				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmark.getId());
+				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmarkRun.getId());
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
 
 		String intermediateOutputPath = null;
-		boolean outputEnabled = benchmark.isOutputRequired();
+		boolean outputEnabled = benchmarkRun.isOutputRequired();
 
 		try{
 			if (outputEnabled) {
@@ -232,9 +237,10 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			job.execute();
 
 			if (outputEnabled) {
+				Path outputFile = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName());
 				OutputConverter.parseAndWrite(
 						intermediateOutputPath,
-						benchmark.getOutputPath(),
+						outputFile.toAbsolutePath().toString(),
 						vertexTranslation);
 			}
 		} catch(Exception e) {
@@ -245,7 +251,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			}
 		}
 
-		return new PlatformBenchmarkResult(NestedConfiguration.empty());
+		return new PlatformBenchmarkResult();
 	}
 
 	@Override
@@ -258,7 +264,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public BenchmarkMetrics retrieveMetrics() {
+	public BenchmarkMetrics extractMetrics() {
 		return new BenchmarkMetrics(); //TODO implements this method.
 	}
 
@@ -268,6 +274,9 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			argsString += arg + " ";
 		}
 
+		System.out.println("format = " + format);
+		System.out.println("binaryName = " + binaryName);
+		System.out.println("argsString = " + argsString);
 		String cmd = String.format(format, binaryName, argsString);
 
 		LOG.info("running command: {}", cmd);
@@ -295,23 +304,29 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public String getName() {
+	public String getPlatformName() {
 		return PLATFORM_NAME;
 	}
 
+
 	@Override
-	public NestedConfiguration getPlatformConfiguration() {
-		return NestedConfiguration.fromExternalConfiguration(config, PROPERTIES_FILENAME);
+	public void preprocess(BenchmarkRun benchmarkRun) {
+		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 
 	@Override
-	public void preBenchmark(Benchmark benchmark, Path logDirectory) {
-		startPlatformLogging(logDirectory.resolve("platform").resolve("driver.logs"));
+	public void prepare(BenchmarkRun benchmarkRun) {
+
 	}
 
 	@Override
-	public void postBenchmark(Benchmark benchmark, Path logDirectory) {
+	public void cleanup(BenchmarkRun benchmarkRun) {
+
+	}
+
+	@Override
+	public void postprocess(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
 	}
 

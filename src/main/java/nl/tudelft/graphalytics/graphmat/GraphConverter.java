@@ -16,13 +16,12 @@
 package nl.tudelft.graphalytics.graphmat;
 
 import it.unimi.dsi.fastutil.longs.*;
-import nl.tudelft.graphalytics.domain.Graph;
+import nl.tudelft.graphalytics.domain.graph.Graph;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.util.regex.Pattern;
 
 /**
  * Utility class for converting graphs in Graphalytics' VE format to the format supported by GraphMat
