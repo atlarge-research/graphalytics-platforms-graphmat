@@ -28,7 +28,9 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
+
 import nl.tudelft.graphalytics.Platform;
 import nl.tudelft.graphalytics.PlatformExecutionException;
 import nl.tudelft.graphalytics.domain.Algorithm;
@@ -112,11 +114,9 @@ public class GraphMatPlatform implements Platform {
 
 		String intermediateFile = createIntermediateFile(graph.getName(), "txt0");
 		String outputFile = createIntermediateFile(graph.getName(), "mtx");
-
-
-		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
-
-
+		//vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
+		String vertexTranslationFile = createIntermediateFile(graph.getName() + "_vertex_translation", "bin");
+		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
 		this.intermediateGraphFile = intermediateFile;
 		this.graphFile = outputFile;
 	}
@@ -135,6 +135,9 @@ public class GraphMatPlatform implements Platform {
 
 		// Convert from Graphalytics VE format to intermediate format
 		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
+                String vertexTranslationFile = createIntermediateFile(graph.getName() + "_vertex_translation", "bin");
+                BinIO.storeObject(vertexTranslation, vertexTranslationFile);
+                LOG.info("Stored vertex translation in: {}", vertexTranslationFile);
 
 		// Check if graph has weights
 		boolean isWeighted = false;
