@@ -207,6 +207,7 @@ public class GraphMatPlatform implements Platform {
 		}
 		boolean isDirected = benchmark.getGraph().isDirected();
 
+                boolean translateVertexProperty = false;
 		switch (algorithm) {
 			case BFS:
 				job = new BreadthFirstSearchJob(config, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmark.getId());
@@ -221,6 +222,7 @@ public class GraphMatPlatform implements Platform {
 				job = new SingleSourceShortestPathJob(config, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmark.getId());
 				break;
 			case CDLP:
+                                translateVertexProperty = true;
 				job = new CommunityDetectionLPJob(config, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmark.getId());
 				break;
 			case LCC:
@@ -245,7 +247,8 @@ public class GraphMatPlatform implements Platform {
 				OutputConverter.parseAndWrite(
 						intermediateOutputPath,
 						benchmark.getOutputPath(),
-						vertexTranslation);
+						vertexTranslation,
+                                                translateVertexProperty);
 			}
 		} catch(Exception e) {
 			throw new PlatformExecutionException("failed to execute command", e);
