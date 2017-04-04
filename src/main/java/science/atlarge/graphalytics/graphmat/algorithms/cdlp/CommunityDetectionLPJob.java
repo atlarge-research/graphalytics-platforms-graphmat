@@ -13,44 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat.algorithms.bfs;
+package science.atlarge.graphalytics.graphmat.algorithms.cdlp;
 
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.graphmat.GraphmatJob;
+import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
+import science.atlarge.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
+import science.atlarge.graphalytics.graphmat.GraphmatJob;
 
-import java.util.List;
+public class CommunityDetectionLPJob extends GraphmatJob {
 
-/**
- * Breadth-first search job implementation for GraphMat. This class is responsible for formatting BFS-specific
- * arguments to be passed to the GraphMat executable, and does not include the implementation of the algorithm.
- *
- * @author Yong Guo
- * @author Tim Hegeman
- */
-public final class BreadthFirstSearchJob extends GraphmatJob {
+	private final CommunityDetectionLPParameters params;
 
-	private final BreadthFirstSearchParameters params;
-
-	public BreadthFirstSearchJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, BreadthFirstSearchParameters params, String jobId) {
+	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
-
+	
 	@Override
 	protected String getExecutable() {
-		return "bfs";
+		return "cd";
 	}
 
 	@Override
 	protected void addJobArguments(List<String> args) {
-		long oldSource = params.getSourceVertex();
-		long newSource = vertexTranslation.get(oldSource);
-		
-		args.add(Long.toString(newSource));
+		args.add(Integer.toString(params.getMaxIterations()));
 		args.add(jobId);
 	}
 }

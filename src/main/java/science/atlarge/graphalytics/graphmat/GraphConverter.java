@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat;
+package science.atlarge.graphalytics.graphmat;
 
 import it.unimi.dsi.fastutil.longs.*;
-import nl.tudelft.graphalytics.domain.graph.Graph;
+import science.atlarge.graphalytics.domain.graph.Graph;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

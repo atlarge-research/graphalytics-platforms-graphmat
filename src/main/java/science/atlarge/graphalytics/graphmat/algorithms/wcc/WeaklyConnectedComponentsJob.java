@@ -13,32 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat.algorithms.lcc;
+package science.atlarge.graphalytics.graphmat.algorithms.wcc;
 
 import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.graphmat.GraphmatJob;
+import science.atlarge.graphalytics.graphmat.GraphmatJob;
 
-public class LocalClusteringCoefficientJob extends GraphmatJob {
+public class WeaklyConnectedComponentsJob extends GraphmatJob {
 
-        private String isDirected;
-
-	public LocalClusteringCoefficientJob(Configuration config, String graphPath, String isDirected, Long2LongMap vertexTranslation, String jobId) {
+	public WeaklyConnectedComponentsJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);
-                this.isDirected = isDirected;
 	}
-		
+
 	@Override
 	protected String getExecutable() {
-		return "lcc";
+		return "conn";
 	}
 
 	@Override
 	protected void addJobArguments(List<String> args) {
+		// None
 		args.add(jobId);
-		args.add(isDirected);
 	}
 }

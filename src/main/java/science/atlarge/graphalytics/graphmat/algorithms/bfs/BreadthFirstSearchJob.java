@@ -13,48 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat.algorithms.pr;
+package science.atlarge.graphalytics.graphmat.algorithms.bfs;
 
-import java.util.List;
+import science.atlarge.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
+import science.atlarge.graphalytics.graphmat.GraphmatJob;
 
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.graphmat.GraphmatJob;
+
+import java.util.List;
 
 /**
- * PR
+ * Breadth-first search job implementation for GraphMat. This class is responsible for formatting BFS-specific
+ * arguments to be passed to the GraphMat executable, and does not include the implementation of the algorithm.
  *
- * @author Wing Lung Ngai
+ * @author Yong Guo
  * @author Tim Hegeman
  */
-public final class PageRankJob extends GraphmatJob {
+public final class BreadthFirstSearchJob extends GraphmatJob {
 
-	private final PageRankParameters params;
-	
-	/**
-	 * Creates a new PageRankJob object with all mandatory parameters specified.
-	 *
-	 * @param jobConfiguration the generic GraphMat configuration to use for this job
-	 * @param graphInputPath   the path of the input graph
-	 * @param graphOutputPath  the path of the output graph
-	 */
-	public PageRankJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, PageRankParameters params, String jobId) {
+	private final BreadthFirstSearchParameters params;
+
+	public BreadthFirstSearchJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, BreadthFirstSearchParameters params, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
 
 	@Override
 	protected String getExecutable() {
-		return "pr";
+		return "bfs";
 	}
 
 	@Override
 	protected void addJobArguments(List<String> args) {
-		args.add(Integer.toString(params.getNumberOfIterations()));
-		args.add(Double.toString(params.getDampingFactor()));
+		long oldSource = params.getSourceVertex();
+		long newSource = vertexTranslation.get(oldSource);
+		
+		args.add(Long.toString(newSource));
 		args.add(jobId);
 	}
-
 }

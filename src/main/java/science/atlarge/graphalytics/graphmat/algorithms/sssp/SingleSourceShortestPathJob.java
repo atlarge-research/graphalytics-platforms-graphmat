@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat.algorithms.sssp;
+package science.atlarge.graphalytics.graphmat.algorithms.sssp;
 
-import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
-import nl.tudelft.graphalytics.graphmat.GraphmatJob;
+import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import science.atlarge.graphalytics.graphmat.GraphmatJob;
 
 import org.apache.commons.configuration.Configuration;
 

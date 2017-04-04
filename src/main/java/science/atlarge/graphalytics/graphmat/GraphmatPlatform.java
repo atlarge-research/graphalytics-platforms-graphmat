@@ -13,40 +13,39 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat;
+package science.atlarge.graphalytics.graphmat;
 
 import java.io.*;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Graphmat;
-import nl.tudelft.graphalytics.report.result.BenchmarkMetrics;
-import nl.tudelft.graphalytics.domain.algorithms.Algorithm;
-import nl.tudelft.graphalytics.report.result.BenchmarkResult;
-import nl.tudelft.graphalytics.domain.benchmark.BenchmarkRun;
-import nl.tudelft.graphalytics.report.result.PlatformBenchmarkResult;
-import nl.tudelft.graphalytics.domain.graph.Graph;
-import nl.tudelft.graphalytics.granula.GranulaAwarePlatform;
+import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
+import science.atlarge.graphalytics.domain.algorithms.Algorithm;
+import science.atlarge.graphalytics.report.result.BenchmarkResult;
+import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
+import science.atlarge.graphalytics.report.result.PlatformBenchmarkResult;
+import science.atlarge.graphalytics.domain.graph.Graph;
+import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.execution.PlatformExecutionException;
-import nl.tudelft.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
-import nl.tudelft.graphalytics.domain.algorithms.PageRankParameters;
-import nl.tudelft.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
-import nl.tudelft.graphalytics.domain.graph.PropertyList;
-import nl.tudelft.graphalytics.domain.graph.PropertyType;
-import nl.tudelft.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.pr.PageRankJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
-import nl.tudelft.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
+import science.atlarge.graphalytics.execution.PlatformExecutionException;
+import science.atlarge.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
+import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
+import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import science.atlarge.graphalytics.domain.graph.PropertyList;
+import science.atlarge.graphalytics.domain.graph.PropertyType;
+import science.atlarge.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
+import science.atlarge.graphalytics.graphmat.algorithms.pr.PageRankJob;
+import science.atlarge.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
+import science.atlarge.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
 import org.json.simple.JSONObject;
 
 /**

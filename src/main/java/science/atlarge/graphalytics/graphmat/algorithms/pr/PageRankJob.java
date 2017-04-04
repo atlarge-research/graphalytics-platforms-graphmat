@@ -13,33 +13,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package nl.tudelft.graphalytics.graphmat.algorithms.cdlp;
+package science.atlarge.graphalytics.graphmat.algorithms.pr;
 
 import java.util.List;
 
 import org.apache.commons.configuration.Configuration;
 
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
-import nl.tudelft.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
-import nl.tudelft.graphalytics.graphmat.GraphmatJob;
+import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
+import science.atlarge.graphalytics.graphmat.GraphmatJob;
 
-public class CommunityDetectionLPJob extends GraphmatJob {
+/**
+ * PR
+ *
+ * @author Wing Lung Ngai
+ * @author Tim Hegeman
+ */
+public final class PageRankJob extends GraphmatJob {
 
-	private final CommunityDetectionLPParameters params;
-
-	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params, String jobId) {
+	private final PageRankParameters params;
+	
+	/**
+	 * Creates a new PageRankJob object with all mandatory parameters specified.
+	 *
+	 * @param jobConfiguration the generic GraphMat configuration to use for this job
+	 * @param graphInputPath   the path of the input graph
+	 * @param graphOutputPath  the path of the output graph
+	 */
+	public PageRankJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, PageRankParameters params, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
 	}
-	
+
 	@Override
 	protected String getExecutable() {
-		return "cd";
+		return "pr";
 	}
 
 	@Override
 	protected void addJobArguments(List<String> args) {
-		args.add(Integer.toString(params.getMaxIterations()));
+		args.add(Integer.toString(params.getNumberOfIterations()));
+		args.add(Double.toString(params.getDampingFactor()));
 		args.add(jobId);
 	}
+
 }
