@@ -16,7 +16,7 @@
 package science.atlarge.graphalytics.graphmat;
 
 import it.unimi.dsi.fastutil.longs.*;
-import science.atlarge.graphalytics.domain.graph.Graph;
+import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -94,7 +94,7 @@ public final class GraphConverter {
 		return old2new;
 	}
 	
-	public static Long2LongMap parseAndWrite(Graph g, String outputFile) throws IOException {
+	public static Long2LongMap parseAndWrite(FormattedGraph g, String outputFile) throws IOException {
 		return parseAndWrite(g.getVertexFilePath(), g.getEdgeFilePath(), outputFile, g.getNumberOfVertices());
 	}
 }
