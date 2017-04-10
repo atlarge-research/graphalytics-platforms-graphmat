@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 #include "boost/serialization/vector.hpp"
 
 #include "GraphMatRuntime.h"
@@ -99,6 +100,11 @@ class CommunityDetectionProgram: public GraphMat::GraphProgram<msg_type, reduce_
         }
 };
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -113,6 +119,7 @@ int main(int argc, char *argv[]) {
 	
     MPI_Init(&argc, &argv);
 
+    bool is_master = GraphMat::get_global_myrank() == 0;
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     string jobId = argc > 3 ? argv[3] : NULL;
@@ -169,8 +176,10 @@ int main(int argc, char *argv[]) {
     cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
     timer_next("print output");
     print_graph<vertex_value_type, int, label_type>(output, graph, MPI_INT);
+    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
 
 #ifdef GRANULA
     cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

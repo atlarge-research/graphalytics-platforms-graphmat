@@ -23,6 +23,7 @@ import java.util.List;
 import nl.tudelft.granula.archiver.PlatformArchive;
 import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Graphmat;
+import nl.tudelft.granula.util.FileUtil;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
@@ -60,6 +61,8 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	public static final String PLATFORM_NAME = "graphmat";
 	public static final String PROPERTIES_FILENAME = PLATFORM_NAME + ".properties";
 
+
+	public static final String GRANULA_ENABLE_KEY = "benchmark.run.granula.enabled";
 	public static final String RUN_COMMAND_FORMAT_KEY = "graphmat.command.run";
 	public static final String CONVERT_COMMAND_FORMAT_KEY = "graphmat.command.convert";
 	public static final String INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
@@ -88,7 +91,8 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			LOG.warn("Could not find or load \"{}\"", PROPERTIES_FILENAME);
 			config = new PropertiesConfiguration();
 		}
-		BINARY_DIRECTORY = "./bin/granula";
+		boolean granulaEnabled = config.getBoolean(GRANULA_ENABLE_KEY, false);
+		BINARY_DIRECTORY = granulaEnabled ? "./bin/standard": "./bin/granula";
 	}
 
 
@@ -235,8 +239,35 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
+
+		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+
+		Long startTime = null;
+		Long endTime = null;
+
+		for (String line : logs.split("\n")) {
+			if (line.contains("Processing starts at: ")) {
+				String[] lineParts = line.split("\\s+");
+				startTime = Long.parseLong(lineParts[lineParts.length - 1]);
+			}
+
+			if (line.contains("Processing ends at: ")) {
+				String[] lineParts = line.split("\\s+");
+				endTime = Long.parseLong(lineParts[lineParts.length - 1]);
+			}
+		}
+
+		if(startTime != null && endTime != null) {
+
+			BenchmarkMetrics metrics = new BenchmarkMetrics();
+			metrics.setProcessingTime(endTime - startTime);
+			return metrics;
+		} else {
+
+			return new BenchmarkMetrics();
+		}
 	}
 
 
