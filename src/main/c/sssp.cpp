@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -73,6 +74,11 @@ class SingleSourceShortestPath: public GraphMat::GraphProgram<msg_type, reduce_t
 
 };
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -136,8 +142,10 @@ int main(int argc, char *argv[]) {
     if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
     timer_next("run algorithm");
     GraphMat::run_graph_program(&prog, graph, GraphMat::UNTIL_CONVERGENCE, &ctx);
+    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

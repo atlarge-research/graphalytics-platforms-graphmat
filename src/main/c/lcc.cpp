@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <algorithm>
 #include <iostream>
+#include <chrono>
 #include "boost/serialization/vector.hpp"
 
 #include "GraphMatRuntime.h"
@@ -249,6 +250,11 @@ class CountTrianglesProgram: public GraphMat::GraphProgram<count_msg_type, count
 
 };
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -263,6 +269,8 @@ int main(int argc, char *argv[]) {
 
     MPI_Init(&argc, &argv);
 
+
+    bool is_master = GraphMat::get_global_myrank() == 0;
     char *filename = argv[1];
 	string jobId = argc > 2 ? argv[2] : "DefaultJobId";
     int isDirected = argc > 3 ? atoi(argv[3]) : NULL;
@@ -314,12 +322,14 @@ int main(int argc, char *argv[]) {
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
     timer_next("run algorithm 1 - phase 1 & 2 (collect neighbors)");
     GraphMat::run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
     GraphMat::run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
 
     timer_next("run algorithm 2 (count triangles)");
     GraphMat::run_graph_program(&cnt_prog, graph, 1, &cnt_ctx);
+    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;

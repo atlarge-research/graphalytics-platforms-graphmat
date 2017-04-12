@@ -7,6 +7,7 @@
 #include <limits>
 #include <omp.h>
 #include <stdint.h>
+#include <chrono>
 
 #ifdef GRANULA
 #include "granula.hpp"
@@ -185,6 +186,11 @@ class PageRankProgram: public GraphMat::GraphProgram<msg_type, reduce_type, vert
         }
 };
 
+string getEpoch() {
+    return to_string(chrono::duration_cast<chrono::milliseconds>
+        (chrono::system_clock::now().time_since_epoch()).count());
+}
+
 
 int main(int argc, char *argv[]) {
 
@@ -248,6 +254,7 @@ int main(int argc, char *argv[]) {
     if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
+    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
     timer_next("run algorithm 1 (count degree)");
     GraphMat::run_graph_program(&out_deg_prog, graph, 1, &ctx1);
     GraphMat::run_graph_program(&in_deg_prog, graph, 1, &ctx2);
@@ -257,6 +264,7 @@ int main(int argc, char *argv[]) {
 
     timer_next("run algorithm 2 (compute PageRank)");
     GraphMat::run_graph_program(&pr_prog, graph, niterations, &ctx3);
+    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
