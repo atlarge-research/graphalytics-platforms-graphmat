@@ -91,7 +91,7 @@ class CommunityDetectionProgram: public GraphMat::GraphProgram<msg_type, reduce_
 			    max_freq_label = total_copy.v[i];
                           }
 			} else {
-			  curr_freq = 0;
+			  curr_freq = 1;
 			}
 	    	}
             	vertex = max_freq_label;
