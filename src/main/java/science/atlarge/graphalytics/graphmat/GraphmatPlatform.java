@@ -42,9 +42,12 @@ import science.atlarge.graphalytics.execution.PlatformExecutionException;
 import science.atlarge.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
 import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import science.atlarge.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import science.atlarge.graphalytics.domain.graph.PropertyList;
 import science.atlarge.graphalytics.domain.graph.PropertyType;
 import science.atlarge.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
+import science.atlarge.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
+import science.atlarge.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import science.atlarge.graphalytics.graphmat.algorithms.pr.PageRankJob;
 import science.atlarge.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
 import science.atlarge.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
@@ -120,8 +123,8 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
 
 		// Convert from Graphalytics VE format to intermediate format
-		vertexTranslation = GraphConverter.parseAndWrite(graph, intermediateFile);
-                String vertexTranslationFile = createIntermediateFile(graph.getName() + "_vertex_translation", "bin");
+		vertexTranslation = GraphConverter.parseAndWrite(formattedGraph, intermediateFile);
+                String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
                 BinIO.storeObject(vertexTranslation, vertexTranslationFile);
                 LOG.info("Stored vertex translation in: {}", vertexTranslationFile);
 
@@ -201,7 +204,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		boolean isDirected = benchmark.getGraph().isDirected();
+		boolean isDirected = benchmarkRun.getGraph().isDirected();
 
                 boolean translateVertexProperty = false;
 		switch (algorithm) {
@@ -339,7 +342,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
 
 
-		String vertexTranslationFile = createIntermediateFile(graph.getName() + "_vertex_translation", "bin");
+		String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
 		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
 
 
