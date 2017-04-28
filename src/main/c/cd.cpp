@@ -54,8 +54,8 @@ class custom_label_type {
 
 class CommunityDetectionProgram: public GraphMat::GraphProgram<msg_type, reduce_type, vertex_value_type> {
     public:
-        CommunityDetectionProgram() {
-            order = GraphMat::ALL_EDGES;
+        CommunityDetectionProgram(int isDirected) {
+            order = (isDirected)?(GraphMat::ALL_EDGES):(GraphMat::OUT_EDGES);
             activity = GraphMat::ALL_VERTICES;
 	    process_message_requires_vertexprop = false;
         }
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     if (argc < 3) {
-        cerr << "usage: " << argv[0] << " <graph file> <niterations> [output file]" << endl;
+        cerr << "usage: " << argv[0] << " <graph file> <niterations> <job id> <isDirected> [output file]" << endl;
         return EXIT_FAILURE;;
     }
 	
@@ -123,7 +123,8 @@ int main(int argc, char *argv[]) {
     char *filename = argv[1];
     int niterations = atoi(argv[2]);
     string jobId = argc > 3 ? argv[3] : NULL;
-    char *output = argc > 4 ? argv[4] : NULL;
+    int isDirected = argc > 4 ? atoi(argv[4]) : 1;
+    char *output = argc > 5 ? argv[5] : NULL;
 
 #ifdef GRANULA
     granula::linkNode(jobId);
@@ -153,7 +154,7 @@ int main(int argc, char *argv[]) {
 	}
     }
 
-    CommunityDetectionProgram prog;
+    CommunityDetectionProgram prog(isDirected);
     auto ctx = GraphMat::graph_program_init(prog, graph);
 
 #ifdef GRANULA

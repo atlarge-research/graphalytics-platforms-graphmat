@@ -26,10 +26,12 @@ import science.atlarge.graphalytics.graphmat.GraphmatJob;
 public class CommunityDetectionLPJob extends GraphmatJob {
 
 	private final CommunityDetectionLPParameters params;
+        private String isDirected;
 
-	public CommunityDetectionLPJob(Configuration config, String graphPath, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params, String jobId) {
+	public CommunityDetectionLPJob(Configuration config, String graphPath, String isDirected, Long2LongMap vertexTranslation, CommunityDetectionLPParameters params, String jobId) {
 		super(config, graphPath, vertexTranslation, jobId);
 		this.params = params;
+                this.isDirected = isDirected;
 	}
 	
 	@Override
@@ -41,5 +43,6 @@ public class CommunityDetectionLPJob extends GraphmatJob {
 	protected void addJobArguments(List<String> args) {
 		args.add(Integer.toString(params.getMaxIterations()));
 		args.add(jobId);
+		args.add(isDirected);
 	}
 }

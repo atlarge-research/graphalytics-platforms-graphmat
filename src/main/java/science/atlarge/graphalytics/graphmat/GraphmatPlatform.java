@@ -222,7 +222,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 				break;
 			case CDLP:
                                 translateVertexProperty = true;
-				job = new CommunityDetectionLPJob(platformConfig, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
+				job = new CommunityDetectionLPJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
 				break;
 			case LCC:
 				job = new LocalClusteringCoefficientJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmarkRun.getId());
