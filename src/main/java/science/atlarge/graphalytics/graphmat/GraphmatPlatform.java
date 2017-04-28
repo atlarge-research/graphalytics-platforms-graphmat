@@ -36,14 +36,18 @@ import org.apache.commons.configuration.PropertiesConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import it.unimi.dsi.fastutil.io.BinIO;
 import it.unimi.dsi.fastutil.longs.Long2LongMap;
 import science.atlarge.graphalytics.execution.PlatformExecutionException;
 import science.atlarge.graphalytics.domain.algorithms.BreadthFirstSearchParameters;
 import science.atlarge.graphalytics.domain.algorithms.PageRankParameters;
 import science.atlarge.graphalytics.domain.algorithms.SingleSourceShortestPathsParameters;
+import science.atlarge.graphalytics.domain.algorithms.CommunityDetectionLPParameters;
 import science.atlarge.graphalytics.domain.graph.PropertyList;
 import science.atlarge.graphalytics.domain.graph.PropertyType;
 import science.atlarge.graphalytics.graphmat.algorithms.bfs.BreadthFirstSearchJob;
+import science.atlarge.graphalytics.graphmat.algorithms.cdlp.CommunityDetectionLPJob;
+import science.atlarge.graphalytics.graphmat.algorithms.lcc.LocalClusteringCoefficientJob;
 import science.atlarge.graphalytics.graphmat.algorithms.pr.PageRankJob;
 import science.atlarge.graphalytics.graphmat.algorithms.sssp.SingleSourceShortestPathJob;
 import science.atlarge.graphalytics.graphmat.algorithms.wcc.WeaklyConnectedComponentsJob;
@@ -76,7 +80,6 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	private String intermediateGraphFile;
 	private String graphFile;
 	private Long2LongMap vertexTranslation;
-        private boolean isDirected;
 
 
 	private static final Logger LOG = LogManager.getLogger();
@@ -116,11 +119,14 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
 		}
 
-		String intermediateFile = createIntermediateFile(formattedGraph.getName(), ".txt");
-		String outputFile = createIntermediateFile(formattedGraph.getName(), ".mtx");
+		String intermediateFile = createIntermediateFile(formattedGraph.getName(), "txt0");
+		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
 
 		// Convert from Graphalytics VE format to intermediate format
 		vertexTranslation = GraphConverter.parseAndWrite(formattedGraph, intermediateFile);
+                String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
+                BinIO.storeObject(vertexTranslation, vertexTranslationFile);
+                LOG.info("Stored vertex translation in: {}", vertexTranslationFile);
 
 		// Check if graph has weights
 		boolean isWeighted = false;
@@ -150,7 +156,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 
 		// Convert from intermediate format to MTX format
-		isDirected = formattedGraph.isDirected();
+		boolean isDirected = formattedGraph.isDirected();
 		String cmdFormat = platformConfig.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
 
@@ -165,8 +171,9 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
 		args.add("--outputedgeweights=" + (isWeighted ? "1" : "2"));
 		args.add("--edgeweighttype=" + weightType);
-		args.add("--split=16");
-		args.add(intermediateFile);
+		//args.add("--split=16");
+		//args.add(intermediateFile);
+		args.add(intermediateFile.substring(0, intermediateFile.length()-1));
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
 
@@ -197,7 +204,9 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		boolean isDirected = benchmarkRun.getGraph().isDirected();
 
+                boolean translateVertexProperty = false;
 		switch (algorithm) {
 			case BFS:
 				job = new BreadthFirstSearchJob(platformConfig, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmarkRun.getId());
@@ -211,6 +220,13 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			case SSSP:
 				job = new SingleSourceShortestPathJob(platformConfig, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmarkRun.getId());
 				break;
+			case CDLP:
+                                translateVertexProperty = true;
+				job = new CommunityDetectionLPJob(platformConfig, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
+				break;
+			case LCC:
+				job = new LocalClusteringCoefficientJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmarkRun.getId());
+				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
 		}
@@ -220,7 +236,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 		try{
 			if (outputEnabled) {
-				intermediateOutputPath = createIntermediateFile("output", "txt");
+				intermediateOutputPath = createIntermediateFile("output", "txt0");
 				job.setOutputPath(intermediateOutputPath);
 			}
 
@@ -231,7 +247,8 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 				OutputConverter.parseAndWrite(
 						intermediateOutputPath,
 						outputFile.toAbsolutePath().toString(),
-						vertexTranslation);
+						vertexTranslation,
+                                                translateVertexProperty);
 			}
 		} catch(Exception e) {
 			throw new PlatformExecutionException("failed to execute command", e);
@@ -321,11 +338,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 	private void setupGraph(FormattedGraph formattedGraph) throws Exception {
 
-		String intermediateFile = createIntermediateFile(formattedGraph.getName(), ".txt");
-		String outputFile = createIntermediateFile(formattedGraph.getName(), ".mtx");
+		String intermediateFile = createIntermediateFile(formattedGraph.getName(), "txt");
+		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
 
 
-		vertexTranslation = GraphConverter.parseAndWrite(formattedGraph, intermediateFile);
+		String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
+		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
 
 
 		this.intermediateGraphFile = intermediateFile;

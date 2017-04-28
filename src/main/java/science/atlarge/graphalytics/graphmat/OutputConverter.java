@@ -27,6 +27,10 @@ import it.unimi.dsi.fastutil.longs.Long2LongOpenHashMap;
 public class OutputConverter {
 
 	public static void parseAndWrite(String inputFile, String outputFile, Long2LongMap vertexTranslation) throws IOException {
+                parseAndWrite(inputFile, outputFile, vertexTranslation, false);
+        }
+
+	public static void parseAndWrite(String inputFile, String outputFile, Long2LongMap vertexTranslation, boolean translateVertexProperty) throws IOException {
 		try (BufferedReader r = new BufferedReader(new FileReader(inputFile));
 				PrintWriter p = new PrintWriter(new FileWriter(outputFile))) {
 
@@ -46,7 +50,12 @@ public class OutputConverter {
 
 					p.print(revVertexTranslation.get(vertexId));
 					p.print(" ");
-					p.print(parts[1]);
+                                        if (translateVertexProperty) {
+                                            long vertexProperty = Long.parseLong(parts[1]);
+                                            p.print(revVertexTranslation.get(vertexProperty));
+                                        } else {
+                                            p.print(parts[1]);
+                                        }
 					p.print("\n");
 				} else {
 					p.print(line);

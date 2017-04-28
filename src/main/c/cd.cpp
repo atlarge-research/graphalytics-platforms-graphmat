@@ -92,7 +92,7 @@ class CommunityDetectionProgram: public GraphMat::GraphProgram<msg_type, reduce_
 			    max_freq_label = total_copy.v[i];
                           }
 			} else {
-			  curr_freq = 0;
+			  curr_freq = 1;
 			}
 	    	}
             	vertex = max_freq_label;
@@ -125,9 +125,6 @@ int main(int argc, char *argv[]) {
     string jobId = argc > 3 ? argv[3] : NULL;
     char *output = argc > 4 ? argv[4] : NULL;
 
-    int nthreads = omp_get_max_threads();
-    cout << "num. threads: " << nthreads << endl;
-
 #ifdef GRANULA
     granula::linkNode(jobId);
     granula::linkProcess(getpid(), jobId);
@@ -142,7 +139,7 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     GraphMat::Graph<vertex_value_type> graph;
-    graph.ReadMTX(filename, nthreads * 4);
+    graph.ReadMTX(filename);
 
 #ifdef GRANULA
     cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
