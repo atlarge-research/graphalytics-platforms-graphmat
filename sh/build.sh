@@ -1,4 +1,4 @@
-GRAPHMAT_HOME=/var/scratch/wlngai/graphalytics-runner/debug/app/graphmatd/src
+GRAPHMAT_HOME=/var/scratch/wlngai/graphalytics/runner/app/graphmatd/src
 
 module unload openmpi/open64/64/1.10.1 
 module unload openmpi/gcc/64/1.10.1 
