@@ -25,6 +25,8 @@ import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Graphmat;
 import nl.tudelft.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
+import science.atlarge.graphalytics.configuration.ConfigurationUtil;
+import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
@@ -94,10 +96,10 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		Configuration benchmarkConfig;
 		Configuration granulaConfig;
 		try {
-			platformConfig = new PropertiesConfiguration(PLATFORM_PROPERTIES_FILE);
-			benchmarkConfig = new PropertiesConfiguration(BENCHMARK_PROPERTIES_FILE);
-			granulaConfig = new PropertiesConfiguration(GRANULA_PROPERTIES_FILE);
-		} catch (Exception e) {
+			platformConfig = ConfigurationUtil.loadConfiguration(PLATFORM_PROPERTIES_FILE);
+			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
+			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
+		} catch (InvalidConfigurationException e) {
 			LOG.warn("Could not find or load \"{}\"", PLATFORM_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
