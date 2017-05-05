@@ -110,7 +110,7 @@ void init_score_and_count_dangling(vertex_value_type* v, int* res, void* param_t
 }
 
 template <typename T>
-void add(T a, T b, T *c, void* param_t) {
+void add(const T& a, const T& b, T *c, void* param_t) {
   *c = a+b;
 }
 
