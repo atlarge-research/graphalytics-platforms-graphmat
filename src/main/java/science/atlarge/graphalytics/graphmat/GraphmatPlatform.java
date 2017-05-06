@@ -165,7 +165,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		args.add("--duplicatededges=0");
 		if (!isDirected) args.add("--bidirectional");
 		args.add("--inputformat=1");
-		args.add("--outputformat=0");
+		args.add("--outputformat=2");
 		args.add("--inputheader=0");
 		args.add("--outputheader=1");
 		args.add("--inputedgeweights=" + (isWeighted ? "1" : "0"));
@@ -222,7 +222,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 				break;
 			case CDLP:
                                 translateVertexProperty = true;
-				job = new CommunityDetectionLPJob(platformConfig, graphFile, vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
+				job = new CommunityDetectionLPJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
 				break;
 			case LCC:
 				job = new LocalClusteringCoefficientJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmarkRun.getId());

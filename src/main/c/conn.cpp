@@ -115,8 +115,8 @@ int main(int argc, char *argv[]) {
 
     timer_next("load graph");
     GraphMat::Graph<vertex_value_type> graph;
-    //graph.ReadMTX(filename, nthreads * 4);
-    graph.ReadMTX(filename);
+    //graph.ReadMTX(filename);
+    graph.ReadGraphMatBin(filename);
 
 #ifdef GRANULA
     if (is_master) cout<<loadGraph.getOperationInfo("EndTime", loadGraph.getEpoch())<<endl;
