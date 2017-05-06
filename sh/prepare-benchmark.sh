@@ -17,10 +17,10 @@
 
 
 # Ensure the configuration file exists
-if [ ! -f "$config/graphmat.properties" ]; then
-	echo "Missing mandatory configuration file: $config/graphmat.properties" >&2
-	exit 1
-fi
+# if [ ! -f "$config/graphmat.properties" ]; then
+# 	echo "Missing mandatory configuration file: $config/graphmat.properties" >&2
+# 	exit 1
+# fi
 
 # Set the "platform" variable
 export platform="graphmat"
@@ -39,12 +39,12 @@ fi
 
 # Build binaries
 if [ -z $GRAPHMAT_HOME ]; then
-    GRAPHMAT_HOME=`awk -F' *= *' '{ if ($1 == "graphmat.home") print $2 }' $config/graphmat.properties`
+    GRAPHMAT_HOME=`awk -F' *= *' '{ if ($1 == "platform.graphmat.home") print $2 }' $config/graphmat.properties`
 fi
 
 if [ -z $GRAPHMAT_HOME ]; then
     echo "Error: home directory for GraphMat not specified."
-    echo "Define the environment variable \$GRAPHMAT_HOME or modify graphmat.home in $config/graphmat.properties"
+    echo "Define the environment variable \$GRAPHMAT_HOME or modify platform.graphmat.home in $config/graphmat.properties"
     exit 1
 fi
 

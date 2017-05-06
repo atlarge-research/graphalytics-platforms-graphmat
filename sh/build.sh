@@ -17,5 +17,4 @@ mkdir -p bin/granula
 
 rm -f bin/*/CMakeCache.txt
 sed -i '40,63d' sh/prepare-benchmark.sh
-echo "echo This is the special distribution of GRAPHMAT.D" >> sh/run-benchmark.sh
 
