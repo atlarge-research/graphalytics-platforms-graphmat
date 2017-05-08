@@ -1,4 +1,4 @@
-GRAPHMAT_HOME=/var/scratch/wlngai/graphalytics/runner/app/graphmatd/src
+GRAPHMAT_HOME=/var/scratch/wlngai/graphalytics/runner/app/graphmat/src
 
 module unload openmpi/open64/64/1.10.1 
 module unload openmpi/gcc/64/1.10.1 
@@ -17,5 +17,4 @@ mkdir -p bin/granula
 
 rm -f bin/*/CMakeCache.txt
 sed -i '40,63d' sh/prepare-benchmark.sh
-echo "echo This is the special distribution of GRAPHMAT.D" >> sh/run-benchmark.sh
 

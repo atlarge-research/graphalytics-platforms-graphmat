@@ -25,10 +25,12 @@ import nl.tudelft.granula.modeller.job.JobModel;
 import nl.tudelft.granula.modeller.platform.Graphmat;
 import nl.tudelft.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
+import science.atlarge.graphalytics.configuration.ConfigurationUtil;
+import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
-import science.atlarge.graphalytics.report.result.BenchmarkResult;
+import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
 import science.atlarge.graphalytics.domain.benchmark.BenchmarkRun;
 import science.atlarge.graphalytics.granula.GranulaAwarePlatform;
 import org.apache.commons.configuration.Configuration;
@@ -61,22 +63,19 @@ import org.json.simple.JSONObject;
  */
 public class GraphmatPlatform implements GranulaAwarePlatform {
 
-
 	public static final String PLATFORM_NAME = "graphmat";
-	public static final String PLATFORM_PROPERTIES_FILE = PLATFORM_NAME + ".properties";
 	private static final String BENCHMARK_PROPERTIES_FILE = "benchmark.properties";
 	private static final String GRANULA_PROPERTIES_FILE = "granula.properties";
 
 	public static final String GRANULA_ENABLE_KEY = "benchmark.run.granula.enabled";
-	public static final String RUN_COMMAND_FORMAT_KEY = "graphmat.command.run";
-	public static final String CONVERT_COMMAND_FORMAT_KEY = "graphmat.command.convert";
-	public static final String INTERMEDIATE_DIR_KEY = "graphmat.intermediate-dir";
+	public static final String RUN_COMMAND_FORMAT_KEY = "platform.graphmat.command.run";
+	public static final String CONVERT_COMMAND_FORMAT_KEY = "platform.graphmat.command.convert";
+	public static final String INTERMEDIATE_DIR_KEY = "platform.graphmat.intermediate-dir";
 
 	public static String BINARY_DIRECTORY = "./bin/standard";
-	public static final String FORMAT_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/format_convert";
 	public static final String MTX_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/graph_convert";
 
-	private Configuration platformConfig;
+	private Configuration benchmarkConfig;
 	private String intermediateGraphFile;
 	private String graphFile;
 	private Long2LongMap vertexTranslation;
@@ -91,17 +90,13 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	public GraphmatPlatform() {
 		LOG.info("Parsing GraphMat configuration file.");
 
-		Configuration benchmarkConfig;
 		Configuration granulaConfig;
 		try {
-			platformConfig = new PropertiesConfiguration(PLATFORM_PROPERTIES_FILE);
-			benchmarkConfig = new PropertiesConfiguration(BENCHMARK_PROPERTIES_FILE);
-			granulaConfig = new PropertiesConfiguration(GRANULA_PROPERTIES_FILE);
-		} catch (Exception e) {
-			LOG.warn("Could not find or load \"{}\"", PLATFORM_PROPERTIES_FILE);
+			benchmarkConfig = ConfigurationUtil.loadConfiguration(BENCHMARK_PROPERTIES_FILE);
+			granulaConfig = ConfigurationUtil.loadConfiguration(GRANULA_PROPERTIES_FILE);
+		} catch (InvalidConfigurationException e) {
 			LOG.warn("Could not find or load \"{}\"", BENCHMARK_PROPERTIES_FILE);
 			LOG.warn("Could not find or load \"{}\"", GRANULA_PROPERTIES_FILE);
-			platformConfig = new PropertiesConfiguration();
 			benchmarkConfig = new PropertiesConfiguration();
 			granulaConfig = new PropertiesConfiguration();
 		}
@@ -157,7 +152,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 		// Convert from intermediate format to MTX format
 		boolean isDirected = formattedGraph.isDirected();
-		String cmdFormat = platformConfig.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
+		String cmdFormat = benchmarkConfig.getString(CONVERT_COMMAND_FORMAT_KEY, "%s %s");
 		List<String> args = new ArrayList<>();
 
 		args.clear();
@@ -209,23 +204,23 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
                 boolean translateVertexProperty = false;
 		switch (algorithm) {
 			case BFS:
-				job = new BreadthFirstSearchJob(platformConfig, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmarkRun.getId());
+				job = new BreadthFirstSearchJob(benchmarkConfig, graphFile, vertexTranslation, (BreadthFirstSearchParameters) params, benchmarkRun.getId());
 				break;
 			case PR:
-				job = new PageRankJob(platformConfig, graphFile, vertexTranslation, (PageRankParameters) params, benchmarkRun.getId());
+				job = new PageRankJob(benchmarkConfig, graphFile, vertexTranslation, (PageRankParameters) params, benchmarkRun.getId());
 				break;
 			case WCC:
-				job = new WeaklyConnectedComponentsJob(platformConfig, graphFile, vertexTranslation, benchmarkRun.getId());
+				job = new WeaklyConnectedComponentsJob(benchmarkConfig, graphFile, vertexTranslation, benchmarkRun.getId());
 				break;
 			case SSSP:
-				job = new SingleSourceShortestPathJob(platformConfig, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmarkRun.getId());
+				job = new SingleSourceShortestPathJob(benchmarkConfig, graphFile, vertexTranslation, (SingleSourceShortestPathsParameters) params, benchmarkRun.getId());
 				break;
 			case CDLP:
                                 translateVertexProperty = true;
-				job = new CommunityDetectionLPJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
+				job = new CommunityDetectionLPJob(benchmarkConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, (CommunityDetectionLPParameters) params, benchmarkRun.getId());
 				break;
 			case LCC:
-				job = new LocalClusteringCoefficientJob(platformConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmarkRun.getId());
+				job = new LocalClusteringCoefficientJob(benchmarkConfig, graphFile, isDirected ? "1" : "0", vertexTranslation, benchmarkRun.getId());
 				break;
 			default:
 				throw new PlatformExecutionException("Not yet implemented.");
@@ -315,7 +310,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	private String createIntermediateFile(String name, String extension) throws IOException {
-		String dir = platformConfig.getString(INTERMEDIATE_DIR_KEY, null);
+		String dir = benchmarkConfig.getString(INTERMEDIATE_DIR_KEY, null);
 
 		if (dir != null) {
 			File f = new File(dir);
@@ -398,12 +393,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void enrichMetrics(BenchmarkResult benchmarkResult, Path arcDirectory) {
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
 		try {
 			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
 			JSONObject processGraph = platformArchive.operation("ProcessGraph");
 			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
-			BenchmarkMetrics metrics = benchmarkResult.getMetrics();
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
 			metrics.setProcessingTime(procTime);
 		} catch(Exception e) {
 			LOG.error("Failed to enrich metrics.");

@@ -8,6 +8,11 @@
     <packaging>jar</packaging>
     <name>Graphalytics Platform GraphMat</name>
 
+    <scm>
+        <developerConnection>scm:git:git@github.com:atlarge-research/graphalytics-platforms-graphmat.git</developerConnection>
+        <url>https://github.com/atlarge-research/graphalytics-platforms-graphmat</url>
+    </scm>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <platform.name>graphmat</platform.name>
@@ -18,12 +23,6 @@
         <junit.version>4.11</junit.version>
         <log4j.version>2.5</log4j.version>
     </properties>
-
-    <scm>
-        <developerConnection>scm:git:ssh://git@github.com/tudelft-atlarge/graphalytics-platforms-graphmat
-        </developerConnection>
-        <tag>HEAD</tag>
-    </scm>
 
     <dependencies>
         <!-- Graphalytics dependencies: core + resources, validation -->
@@ -94,7 +93,7 @@
         <profile>
             <id>granula</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <build>
                 <plugins>
@@ -272,7 +271,30 @@
                 </configuration>
             </plugin>
 
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.3</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                        <configuration>
+                            <doCheck>true</doCheck>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
+
+        <resources>
+            <resource>
+                <directory>${basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
     </build>
 </project>
 
