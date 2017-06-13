@@ -104,10 +104,13 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": BINARY_DIRECTORY;
 	}
 
+	@Override
+	public void verifySetup() {
 
+	}
 
 	@Override
-	public void uploadGraph(FormattedGraph formattedGraph) throws Exception {
+	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", formattedGraph.getName());
 
 		if (formattedGraph.getNumberOfVertices() > Integer.MAX_VALUE || formattedGraph.getNumberOfEdges() > Integer.MAX_VALUE) {
@@ -183,12 +186,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void preprocess(BenchmarkRun benchmarkRun) {
+	public void startup(BenchmarkRun benchmarkRun) {
 		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public boolean execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public boolean run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		Object params = benchmarkRun.getAlgorithmParameters();
@@ -257,12 +260,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void cleanup(BenchmarkRun benchmarkRun) {
+	public void terminate(BenchmarkRun benchmarkRun) {
 
 	}
 
 	@Override
-	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
 
 		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
