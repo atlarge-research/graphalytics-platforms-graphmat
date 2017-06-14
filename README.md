@@ -4,7 +4,7 @@
 
 [GraphMat](https://github.com/narayanan2004/GraphMat) is ... (TODO: provide a short description on GraphMat).
 
-To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/wlngai/graphalytics-wiki/wiki/Manual:-Running-Benchmark#benchmark-configuration) with the GraphMat-specific instructions listed below.
+To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/ldbc/ldbc_graphalytics/wiki/Manual%3A-Running-Benchmark) with the GraphMat-specific instructions listed below.
 
 ### Obtain the platform driver
 There are two possible ways to obtain the GraphMat platform driver:
@@ -14,6 +14,7 @@ There are two possible ways to obtain the GraphMat platform driver:
   - (TODO: provide a url pointing to the repository page.)
 
  2. **Build the platform drivers**: 
+  - (To be deprecated): Current it is required to build the [Graphlytics core libraries](https://github.com/ldbc/ldbc_graphalytics/tree/) with ``mvn clean install -Pgranula``, soon it will be available via Maven central repo.
   - Download the source code from this repository.
   - Execute `mvn clean package` in the root directory (See details in [Software Build](https://github.com/ldbc/ldbc_graphalytics/wiki/Documentation:-Software-Build)).
   - Extract the distribution from  `graphalytics-{graphalytics-version}-graphmat-{platform-version}.tar.gz`.
