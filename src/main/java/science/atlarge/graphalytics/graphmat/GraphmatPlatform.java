@@ -16,6 +16,7 @@
 package science.atlarge.graphalytics.graphmat;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.configuration.ConfigurationUtil;
 import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.report.result.BenchmarkMetric;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
@@ -294,7 +296,11 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		if(startTime != null && endTime != null) {
 
 			BenchmarkMetrics metrics = new BenchmarkMetrics();
-			metrics.setProcessingTime(endTime - startTime);
+
+			Long procTimeMS =  new Long(endTime - startTime);
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
 			return metrics;
 		} else {
 
@@ -400,9 +406,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		try {
 			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
 			JSONObject processGraph = platformArchive.operation("ProcessGraph");
-			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
 			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
-			metrics.setProcessingTime(procTime);
+
+			Integer procTimeMS = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
 		} catch(Exception e) {
 			LOG.error("Failed to enrich metrics.");
 		}
