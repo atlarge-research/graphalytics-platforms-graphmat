@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
     if (is_master) cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
-    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
+    if (is_master) cout<< "Processing starts at: " + getEpoch() + "\n" <<endl;
     timer_next("run algorithm 1 (count degree)");
     GraphMat::run_graph_program(&out_deg_prog, graph, 1, &ctx1);
     GraphMat::run_graph_program(&in_deg_prog, graph, 1, &ctx2);
@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
 
     timer_next("run algorithm 2 (compute PageRank)");
     GraphMat::run_graph_program(&pr_prog, graph, niterations, &ctx3);
-    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
+    if (is_master) cout<< "Processing ends at: " + getEpoch() + "\n" <<endl;
 
 #ifdef GRANULA
     if (is_master) cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -272,14 +272,14 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     granula::operation offloadGraph("GraphMat", "Id.Unique", "OffloadGraph", "Id.Unique");
-    if (is_master) cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("print output");
     print_graph<vertex_value_type, int, score_type>(output, graph, MPI_DOUBLE);
 
 #ifdef GRANULA
-    if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    if (is_master) cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("deinitialize engine");
