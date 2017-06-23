@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package nl.tudelft.granula.modeller.platform.operation;
+package science.atlarge.granula.modeller.platform.operation;
 
-import nl.tudelft.granula.modeller.Type;
-import nl.tudelft.granula.modeller.rule.derivation.SimpleSummaryDerivation;
-import nl.tudelft.granula.modeller.rule.derivation.time.*;
-import nl.tudelft.granula.modeller.rule.linking.EmptyLinking;
-import nl.tudelft.granula.modeller.rule.visual.TableVisualization;
+import science.atlarge.granula.modeller.Type;
+import science.atlarge.granula.modeller.rule.derivation.SimpleSummaryDerivation;
+import science.atlarge.granula.modeller.rule.derivation.time.*;
+import science.atlarge.granula.modeller.rule.linking.EmptyLinking;
+import science.atlarge.granula.modeller.rule.visual.TableVisualization;
 
 import java.util.ArrayList;
 
-public class GraphmatJob extends nl.tudelft.granula.modeller.platform.operation.AbstractOperationModel {
+public class GraphmatJob extends science.atlarge.granula.modeller.platform.operation.AbstractOperationModel {
 
     public GraphmatJob() {
         super(Type.GraphMat, Type.Job);

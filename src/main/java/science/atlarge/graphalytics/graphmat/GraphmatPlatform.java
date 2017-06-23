@@ -21,10 +21,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import nl.tudelft.granula.archiver.PlatformArchive;
-import nl.tudelft.granula.modeller.job.JobModel;
-import nl.tudelft.granula.modeller.platform.Graphmat;
-import nl.tudelft.granula.util.FileUtil;
+import science.atlarge.granula.archiver.PlatformArchive;
+import science.atlarge.granula.modeller.job.JobModel;
+import science.atlarge.granula.modeller.platform.Graphmat;
+import science.atlarge.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.configuration.ConfigurationUtil;
 import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
