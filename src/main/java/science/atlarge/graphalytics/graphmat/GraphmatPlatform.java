@@ -216,7 +216,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public boolean run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		Object params = benchmarkRun.getAlgorithmParameters();
@@ -281,7 +281,6 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			}
 		}
 
-		return true;
 	}
 
 	@Override
