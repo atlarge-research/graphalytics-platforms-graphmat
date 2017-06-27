@@ -113,7 +113,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 
 	@Override
 	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
-		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", formattedGraph.getName());
+		LOG.info("Preprocessing graph \"{}\": generating intermediate mtx format.", formattedGraph.getName());
 
 		if (formattedGraph.getNumberOfVertices() > Integer.MAX_VALUE || formattedGraph.getNumberOfEdges() > Integer.MAX_VALUE) {
 			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
