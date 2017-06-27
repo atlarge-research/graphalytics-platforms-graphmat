@@ -17,29 +17,41 @@
 
 
 # Ensure the configuration file exists
+rootdir=$(dirname $(readlink -f ${BASH_SOURCE[0]}))/../../
+config="${rootdir}/config/"
 if [ ! -f "$config/platform.properties" ]; then
 	echo "Missing mandatory configuration file: $config/platform.properties" >&2
 	exit 1
 fi
 
 
-# Set library jar
-export LIBRARY_JAR=`ls lib/graphalytics-*default*.jar`
-GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
-if [ "$GRANULA_ENABLED" = "true" ] ; then
- if ! find lib -name "graphalytics-platforms-*-granula.jar" | grep -q '.'; then
-    echo "Failed to find the library jar with Granula plugin" >&2
-    exit 1
- else
-    export LIBRARY_JAR=`ls lib/graphalytics-platforms-*-granula.jar`
- fi
-fi
-
-
+# Construct the classpath
 GRAPHMAT_HOME=$(grep -E "^platform.graphmat.home[	 ]*[:=]" $config/platform.properties | sed 's/platform.graphmat.home[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 if [ -z GRAPHMAT_HOME ]; then
     echo "Error: home directory for Graphmat not specified."
     echo "Define the environment variable \$GRAPHMAT_HOME or modify platform.graphmat.home in $config/platform.properties"
     exit 1
 fi
+GRANULA_ENABLED=$(grep -E "^benchmark.run.granula.enabled[	 ]*[:=]" $config/granula.properties | sed 's/benchmark.run.granula.enabled[\t ]*[:=][\t ]*\([^\t ]*\).*/\1/g' | head -n 1)
 
+
+# Build binaries
+module unload openmpi
+module unload openmpi/gcc
+module load intel/compiler
+module load intel-mpi
+module load intel/mkl
+
+mkdir -p bin/standard
+(cd bin/standard && cmake -DCMAKE_BUILD_TYPE=Release ../../src/main/c -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+
+if [ "$GRANULA_ENABLED" = "true" ] ; then
+ mkdir -p bin/granula
+ (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src/main/c -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
+fi
+
+if [ $? -ne 0 ]
+then
+    echo "Compilation failed"
+    exit 1
+fi
