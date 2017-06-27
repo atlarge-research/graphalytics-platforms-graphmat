@@ -9,12 +9,9 @@ To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalyt
 ### Obtain the platform driver
 There are two possible ways to obtain the GraphMat platform driver:
 
- 1. **Download the (prebuild) [GraphMat platform driver](https://atlarge-research.com/projects/graphalytics/platforms)** distribution from our website.
-  - (TODO: upload stable releases.)
-  - (TODO: provide a url pointing to the repository page.)
+ 1. **Download the (prebuilt) [GraphMat platform driver](http://graphalytics.site/dist/stable/graphmat/) distribution from our website.
 
  2. **Build the platform drivers**: 
-  - (To be deprecated): Current it is required to build the [Graphlytics core libraries](https://github.com/ldbc/ldbc_graphalytics/tree/) with ``mvn clean install -Pgranula``, soon it will be available via Maven central repo.
   - Download the source code from this repository.
   - Execute `mvn clean package` in the root directory (See details in [Software Build](https://github.com/ldbc/ldbc_graphalytics/wiki/Documentation:-Software-Build)).
   - Extract the distribution from  `graphalytics-{graphalytics-version}-graphmat-{platform-version}.tar.gz`.
@@ -50,5 +47,5 @@ Adjust the GraphMat configurations in `config/platform.properties`.
  - `platform.graphmat.intermediate-dir`:  Directory where intermediate conversion files are stored. During the benchmark, graphs are converted from Graphalytics format to GraphMat format.
  - `platform.graphmat.num-threads`: Number of threads to use when running GraphMat.
  - `platform.graphmat.command.convert`: The format of the command used to run the conversion executable. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
- - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `env KMP_AFFINITY=scatter numactl -i all %s %s` as recommended by the authors of GraphMat.
+ - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
 
