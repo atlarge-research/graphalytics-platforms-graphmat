@@ -48,4 +48,3 @@ Adjust the GraphMat configurations in `config/platform.properties`.
  - `platform.graphmat.num-threads`: Number of threads to use when running GraphMat.
  - `platform.graphmat.command.convert`: The format of the command used to run the conversion executable. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
  - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
-
