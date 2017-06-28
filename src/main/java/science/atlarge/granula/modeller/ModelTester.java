@@ -1,11 +1,11 @@
-package nl.tudelft.granula.modeller;
+package science.atlarge.granula.modeller;
 
-import nl.tudelft.granula.archiver.GranulaArchiver;
-import nl.tudelft.granula.modeller.entity.BasicType.ArchiveFormat;
-import nl.tudelft.granula.modeller.job.JobModel;
-import nl.tudelft.granula.modeller.job.Overview;
-import nl.tudelft.granula.modeller.platform.Graphmat;
-import nl.tudelft.granula.modeller.source.JobDirectorySource;
+import science.atlarge.granula.archiver.GranulaArchiver;
+import science.atlarge.granula.modeller.entity.BasicType.ArchiveFormat;
+import science.atlarge.granula.modeller.job.JobModel;
+import science.atlarge.granula.modeller.job.Overview;
+import science.atlarge.granula.modeller.platform.Graphmat;
+import science.atlarge.granula.modeller.source.JobDirectorySource;
 
 /**
  * Created by wing on 21-8-15.

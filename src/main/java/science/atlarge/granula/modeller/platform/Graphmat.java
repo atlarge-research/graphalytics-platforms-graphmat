@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package nl.tudelft.granula.modeller.platform;
+package science.atlarge.granula.modeller.platform;
 
-import nl.tudelft.granula.modeller.job.Job;
-import nl.tudelft.granula.modeller.job.Overview;
-import nl.tudelft.granula.modeller.Type;
-import nl.tudelft.granula.modeller.platform.operation.*;
-import nl.tudelft.granula.modeller.rule.derivation.DerivationRule;
-import nl.tudelft.granula.modeller.rule.extraction.GraphmatExtractionRule;
-import nl.tudelft.granula.modeller.platform.info.BasicInfo;
-import nl.tudelft.granula.modeller.platform.info.Source;
-import nl.tudelft.granula.modeller.rule.filling.UniqueOperationFilling;
+import science.atlarge.granula.modeller.job.Job;
+import science.atlarge.granula.modeller.job.Overview;
+import science.atlarge.granula.modeller.Type;
+import science.atlarge.granula.modeller.platform.operation.*;
+import science.atlarge.granula.modeller.rule.derivation.DerivationRule;
+import science.atlarge.granula.modeller.platform.operation.*;
+import science.atlarge.granula.modeller.rule.extraction.GraphmatExtractionRule;
+import science.atlarge.granula.modeller.platform.info.BasicInfo;
+import science.atlarge.granula.modeller.platform.info.Source;
+import science.atlarge.granula.modeller.rule.filling.UniqueOperationFilling;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,13 +80,13 @@ public class Graphmat extends PlatformModel {
             platform.addRoot(jobOper.getUuid());
 
             try {
-                nl.tudelft.granula.modeller.platform.operation.Operation processGraph = platform.findOperation(Type.GraphMat, Type.ProcessGraph);
+                science.atlarge.granula.modeller.platform.operation.Operation processGraph = platform.findOperation(Type.GraphMat, Type.ProcessGraph);
                 long processingTime = Long.parseLong(processGraph.getInfo("Duration").getValue());
 
-                nl.tudelft.granula.modeller.platform.operation.Operation loadGraph = platform.findOperation(Type.GraphMat, Type.LoadGraph);
+                science.atlarge.granula.modeller.platform.operation.Operation loadGraph = platform.findOperation(Type.GraphMat, Type.LoadGraph);
                 long loadTime = Long.parseLong(loadGraph.getInfo("Duration").getValue());
 
-                nl.tudelft.granula.modeller.platform.operation.Operation topOperation = platform.findOperation(Type.GraphMat, Type.Job);
+                science.atlarge.granula.modeller.platform.operation.Operation topOperation = platform.findOperation(Type.GraphMat, Type.Job);
                 long totalTime = Long.parseLong(topOperation.getInfo("Duration").getValue());
 
                 long otherTime = totalTime - loadTime - processingTime;

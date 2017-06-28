@@ -61,6 +61,12 @@ namespace granula {
     }
 
     void sendMonitorMessage(std::string message) {
+
+        bool monitorEnabled = false;
+        if(!monitorEnabled) {
+            return;
+        }
+
         fprintf(stdout, "Communicating with Granula monitor.\n");
         // server: for lookup of server address
         // serv_addr: serv_addr

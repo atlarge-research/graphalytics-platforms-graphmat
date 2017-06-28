@@ -349,7 +349,7 @@ int main(int argc, char *argv[]) {
     cout<<processGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
 #endif
 
-    if (is_master) cout<<"Processing starts at: "<<getEpoch()<<endl;
+    if (is_master) cout<< "Processing starts at: " + getEpoch() + "\n" <<endl;
     timer_next("run algorithm 1 - phase 1 & 2 (collect neighbors)");
     GraphMat::run_graph_program(&col_prog_out, graph, 1, &col_ctx_out);
     if(isDirected) GraphMat::run_graph_program(&col_prog_in, graph, 1, &col_ctx_in);
@@ -360,7 +360,7 @@ int main(int argc, char *argv[]) {
     } else {
       GraphMat::run_graph_program(&cnt_undir_prog, graph, 1, &cnt_undir_ctx);
     }
-    if (is_master) cout<<"Processing ends at: "<<getEpoch()<<endl;
+    if (is_master) cout<< "Processing ends at: " + getEpoch() + "\n" <<endl;
 
 #ifdef GRANULA
     cout<<processGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
@@ -368,7 +368,7 @@ int main(int argc, char *argv[]) {
 
 #ifdef GRANULA
     granula::operation offloadGraph("GraphMat", "Id.Unique", "OffloadGraph", "Id.Unique");
-    cout<<offloadGraph.getOperationInfo("StartTime", processGraph.getEpoch())<<endl;
+    cout<<offloadGraph.getOperationInfo("StartTime", offloadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("print output");
@@ -383,7 +383,7 @@ int main(int argc, char *argv[]) {
     MPI_Barrier(MPI_COMM_WORLD);
   }*/
 #ifdef GRANULA
-    cout<<offloadGraph.getOperationInfo("EndTime", processGraph.getEpoch())<<endl;
+    cout<<offloadGraph.getOperationInfo("EndTime", offloadGraph.getEpoch())<<endl;
 #endif
 
     timer_next("deinitialize engine");

@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-package nl.tudelft.granula.modeller.platform.operation;
+package science.atlarge.granula.modeller.platform.operation;
 
-import nl.tudelft.granula.modeller.Type;
-import nl.tudelft.granula.modeller.rule.derivation.SimpleSummaryDerivation;
-import nl.tudelft.granula.modeller.rule.linking.UniqueParentLinking;
-import nl.tudelft.granula.modeller.rule.visual.TableVisualization;
+import science.atlarge.granula.modeller.Type;
+import science.atlarge.granula.modeller.rule.derivation.SimpleSummaryDerivation;
+import science.atlarge.granula.modeller.rule.linking.UniqueParentLinking;
+import science.atlarge.granula.modeller.rule.visual.TableVisualization;
 
 import java.util.ArrayList;
 
-public class OffloadGraph extends RealtimeOperationModel {
+public class LoadGraph extends RealtimeOperationModel {
 
-    public OffloadGraph() {
-        super(Type.GraphMat, Type.OffloadGraph);
+    public LoadGraph() {
+        super(Type.GraphMat, Type.LoadGraph);
     }
 
     public void loadRules() {
@@ -34,13 +34,12 @@ public class OffloadGraph extends RealtimeOperationModel {
 
         addLinkingRule(new UniqueParentLinking(Type.GraphMat, Type.Job));
 
-        String summary = "OffloadGraph stores the results back in disk.";
+        String summary = "LoadGraph operations loads the graph dataset (in binary format) from disk.";
         addInfoDerivation(new SimpleSummaryDerivation(11, summary));
 
         addVisualDerivation(new TableVisualization(1, "MainInfo",
                 new ArrayList<String>() {{
                 }}));
     }
-
 
 }

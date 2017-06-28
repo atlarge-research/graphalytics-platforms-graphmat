@@ -4,14 +4,12 @@
 
 [GraphMat](https://github.com/narayanan2004/GraphMat) is ... (TODO: provide a short description on GraphMat).
 
-To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/wlngai/graphalytics-wiki/wiki/Manual:-Running-Benchmark#benchmark-configuration) with the GraphMat-specific instructions listed below.
+To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/ldbc/ldbc_graphalytics/wiki/Manual%3A-Running-Benchmark) with the GraphMat-specific instructions listed below.
 
 ### Obtain the platform driver
 There are two possible ways to obtain the GraphMat platform driver:
 
- 1. **Download the (prebuild) [GraphMat platform driver](https://atlarge-research.com/projects/graphalytics/platforms)** distribution from our website.
-  - (TODO: upload stable releases.)
-  - (TODO: provide a url pointing to the repository page.)
+ 1. **Download the (prebuilt) [GraphMat platform driver](http://graphalytics.site/dist/stable/graphmat/) distribution from our website.
 
  2. **Build the platform drivers**: 
   - Download the source code from this repository.
@@ -49,5 +47,5 @@ Adjust the GraphMat configurations in `config/platform.properties`.
  - `platform.graphmat.intermediate-dir`:  Directory where intermediate conversion files are stored. During the benchmark, graphs are converted from Graphalytics format to GraphMat format.
  - `platform.graphmat.num-threads`: Number of threads to use when running GraphMat.
  - `platform.graphmat.command.convert`: The format of the command used to run the conversion executable. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
- - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `env KMP_AFFINITY=scatter numactl -i all %s %s` as recommended by the authors of GraphMat.
+ - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
 

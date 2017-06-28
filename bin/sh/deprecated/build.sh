@@ -16,5 +16,5 @@ mkdir -p bin/granula
 (cd bin/granula && cmake -DCMAKE_BUILD_TYPE=Release -DGRANULA=1 ../../src/main/c -DGRAPHMAT_HOME=$GRAPHMAT_HOME && make all VERBOSE=1)
 
 rm -f bin/*/CMakeCache.txt
-sed -i '40,63d' sh/prepare-benchmark.sh
+sed -i '40,69d' bin/sh/prepare-benchmark.sh
 

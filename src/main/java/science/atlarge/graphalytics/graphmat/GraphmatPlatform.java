@@ -16,18 +16,20 @@
 package science.atlarge.graphalytics.graphmat;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import nl.tudelft.granula.archiver.PlatformArchive;
-import nl.tudelft.granula.modeller.job.JobModel;
-import nl.tudelft.granula.modeller.platform.Graphmat;
-import nl.tudelft.granula.util.FileUtil;
+import science.atlarge.granula.archiver.PlatformArchive;
+import science.atlarge.granula.modeller.job.JobModel;
+import science.atlarge.granula.modeller.platform.Graphmat;
+import science.atlarge.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.configuration.ConfigurationUtil;
 import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.report.result.BenchmarkMetric;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
 import science.atlarge.graphalytics.report.result.BenchmarkRunResult;
@@ -104,11 +106,14 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		BINARY_DIRECTORY = granulaEnabled ? "./bin/granula": BINARY_DIRECTORY;
 	}
 
+	@Override
+	public void verifySetup() {
 
+	}
 
 	@Override
-	public void uploadGraph(FormattedGraph formattedGraph) throws Exception {
-		LOG.info("Preprocessing graph \"{}\". Currently disabled (not needed).", formattedGraph.getName());
+	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
+		LOG.info("Preprocessing graph \"{}\": generating intermediate mtx format.", formattedGraph.getName());
 
 		if (formattedGraph.getNumberOfVertices() > Integer.MAX_VALUE || formattedGraph.getNumberOfEdges() > Integer.MAX_VALUE) {
 			throw new IllegalArgumentException("GraphMat does not support more than " + Integer.MAX_VALUE + " vertices/edges");
@@ -178,17 +183,40 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
+	public void deleteGraph(FormattedGraph formattedGraph) {
+		tryDeleteIntermediateFile(intermediateGraphFile);
+		// TODO parametrize graph conversion splits
+		for (int i = 0; i < 16; i++) {
+			tryDeleteIntermediateFile(graphFile + i);
+		}
+	}
+
+	private void setupGraph(FormattedGraph formattedGraph) throws Exception {
+
+		String intermediateFile = createIntermediateFile(formattedGraph.getName(), "txt");
+		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
+
+
+		String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
+		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
+
+
+		this.intermediateGraphFile = intermediateFile;
+		this.graphFile = outputFile;
+	}
+
+	@Override
 	public void prepare(BenchmarkRun benchmarkRun) {
 
 	}
 
 	@Override
-	public void preprocess(BenchmarkRun benchmarkRun) {
+	public void startup(BenchmarkRun benchmarkRun) {
 		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public boolean execute(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		Object params = benchmarkRun.getAlgorithmParameters();
@@ -253,16 +281,10 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			}
 		}
 
-		return true;
 	}
 
 	@Override
-	public void cleanup(BenchmarkRun benchmarkRun) {
-
-	}
-
-	@Override
-	public BenchmarkMetrics postprocess(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
 		stopPlatformLogging();
 
 		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
@@ -291,7 +313,11 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		if(startTime != null && endTime != null) {
 
 			BenchmarkMetrics metrics = new BenchmarkMetrics();
-			metrics.setProcessingTime(endTime - startTime);
+
+			Long procTimeMS =  new Long(endTime - startTime);
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
 			return metrics;
 		} else {
 
@@ -299,52 +325,26 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		}
 	}
 
+	@Override
+	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
+		try {
+			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
+			JSONObject processGraph = platformArchive.operation("ProcessGraph");
+			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
+
+			Integer procTimeMS = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
+			BigDecimal procTimeS = (new BigDecimal(procTimeMS)).divide(new BigDecimal(1000), 3, BigDecimal.ROUND_CEILING);
+			metrics.setProcessingTime(new BenchmarkMetric(procTimeS, "s"));
+
+		} catch(Exception e) {
+			LOG.error("Failed to enrich metrics.");
+		}
+	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) {
-		tryDeleteIntermediateFile(intermediateGraphFile);
-		// TODO parametrize graph conversion splits
-		for (int i = 0; i < 16; i++) {
-			tryDeleteIntermediateFile(graphFile + i);
-		}
+	public void terminate(BenchmarkRun benchmarkRun) {
+
 	}
-
-	private String createIntermediateFile(String name, String extension) throws IOException {
-		String dir = benchmarkConfig.getString(INTERMEDIATE_DIR_KEY, null);
-
-		if (dir != null) {
-			File f = new File(dir);
-
-			if (!f.isDirectory() && !f.mkdirs()) {
-				throw new IOException("failed to create intermediate directory: " + dir);
-			}
-
-			return f + "/" + name + "." + extension;
-		} else {
-			return File.createTempFile(name, "." + extension).getAbsolutePath();
-		}
-	}
-
-	private void tryDeleteIntermediateFile(String path) {
-		if (!new File(path).delete()) {
-			LOG.warn("failed to delete intermediate file '{}'", path);
-		}
-	}
-
-	private void setupGraph(FormattedGraph formattedGraph) throws Exception {
-
-		String intermediateFile = createIntermediateFile(formattedGraph.getName(), "txt");
-		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
-
-
-		String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
-		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
-
-
-		this.intermediateGraphFile = intermediateFile;
-		this.graphFile = outputFile;
-	}
-
 
 	public static void runCommand(String format, String binaryName, List<String> args) throws InterruptedException, IOException  {
 		String argsString = "";
@@ -381,30 +381,6 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		}
 	}
 
-	@Override
-	public String getPlatformName() {
-		return PLATFORM_NAME;
-	}
-
-
-	@Override
-	public JobModel getJobModel() {
-		return new JobModel(new Graphmat());
-	}
-
-	@Override
-	public void enrichMetrics(BenchmarkRunResult benchmarkRunResult, Path arcDirectory) {
-		try {
-			PlatformArchive platformArchive = PlatformArchive.readArchive(arcDirectory);
-			JSONObject processGraph = platformArchive.operation("ProcessGraph");
-			Integer procTime = Integer.parseInt(platformArchive.info(processGraph, "Duration"));
-			BenchmarkMetrics metrics = benchmarkRunResult.getMetrics();
-			metrics.setProcessingTime(procTime);
-		} catch(Exception e) {
-			LOG.error("Failed to enrich metrics.");
-		}
-	}
-
 	public static void startPlatformLogging(Path fileName) {
 		sysOut = System.out;
 		sysErr = System.err;
@@ -428,4 +404,39 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		System.setOut(sysOut);
 		System.setErr(sysErr);
 	}
+
+
+	private String createIntermediateFile(String name, String extension) throws IOException {
+		String dir = benchmarkConfig.getString(INTERMEDIATE_DIR_KEY, null);
+
+		if (dir != null) {
+			File f = new File(dir);
+
+			if (!f.isDirectory() && !f.mkdirs()) {
+				throw new IOException("failed to create intermediate directory: " + dir);
+			}
+
+			return f + "/" + name + "." + extension;
+		} else {
+			return File.createTempFile(name, "." + extension).getAbsolutePath();
+		}
+	}
+
+	private void tryDeleteIntermediateFile(String path) {
+		if (!new File(path).delete()) {
+			LOG.warn("failed to delete intermediate file '{}'", path);
+		}
+	}
+
+	@Override
+	public JobModel getJobModel() {
+		return new JobModel(new Graphmat());
+	}
+
+	@Override
+	public String getPlatformName() {
+		return PLATFORM_NAME;
+	}
+
+
 }
