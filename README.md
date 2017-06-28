@@ -1,32 +1,50 @@
-# Graphalytics GraphMat platform extension
+# Graphalytics Graphmat platform driver
 
-## Note on support
+[![Build Status](http://jenkins.tribler.org/buildStatus/icon?job=Graphalytics_Graphmat_master_tester)](http://jenkins.tribler.org/job/Graphalytics_Graphmat_master_tester/) (TODO: setup Jenkins continuous integration) 
 
-Current development is happening in the [dataformat-granula-distr branch](https://github.com/tudelft-atlarge/graphalytics-platforms-graphmat/tree/dataformat-granula-distr). We are adapting the code to the latest [GraphMat](https://github.com/narayanan2004/GraphMat/tree/distributed_primitives_integration) and [Graphalytics](https://github.com/ldbc/ldbc_graphalytics/tree/dataformat-granula) APIs. However, the code is not yet stable; we hope to have a release in February 2016. Unfortunately, we do not have the resources to address issues in the older code in the master branch.
+[GraphMat](https://github.com/narayanan2004/GraphMat) is ... (TODO: provide a short description on GraphMat).
 
-## Getting started
+To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/ldbc/ldbc_graphalytics/wiki/Manual%3A-Running-Benchmark) with the GraphMat-specific instructions listed below.
 
-Please refer to the documentation of the Graphalytics core (`graphalytics` repository) for an introduction to using Graphalytics.
+### Obtain the platform driver
+There are two possible ways to obtain the GraphMat platform driver:
 
-The following dependencies are required for this platform extension (in parentheses are the tested versions):
+ 1. **Download the (prebuilt) [GraphMat platform driver](http://graphalytics.site/dist/stable/graphmat/) distribution from our website.
 
-* Intel compiler (icpc)
-* [GraphMat](https://github.com/narayanan2004/GraphMat/)
-* CMake (3.2.2)
-* GNU Make (4.0)
-
-Download [GraphMat](https://github.com/narayanan2004/GraphMat/) and unpack into any directory. Modify `graphmat.home` in `config/graphmat.properties` to point to this directory or set the environment variable `GRAPHMAT_HOME` to this directory.
-
-Finally, refer to the documation of the Graphayltics core on how to build and run this platform repository.
+ 2. **Build the platform drivers**: 
+  - Download the source code from this repository.
+  - Execute `mvn clean package` in the root directory (See details in [Software Build](https://github.com/ldbc/ldbc_graphalytics/wiki/Documentation:-Software-Build)).
+  - Extract the distribution from  `graphalytics-{graphalytics-version}-graphmat-{platform-version}.tar.gz`.
 
 
-## GraphMat-specific benchmark configuration
 
-Edit `config/graphmat.properties` to change the following settings:
+### Verify the necessary prerequisites
+The softwares listed below are required by the GraphMat platform driver, which should be properly configured in the cluster environment. Softwares that are provided are already included in the platform driver.
 
-- `graphmat.home`: Directory where GraphMat has been installed.
-- `graphmat.intermediate-dir`:  Directory where intermediate conversion files are stored. During the benchmark, graphs are converted from Graphalytics format to GraphMat format.
-- `graphmat.num-threads`: Number of threads to use when running GraphMat.
-- `graphmat.command.convert`: The format of the command used to run the conversion executable. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
-- `graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `env KMP_AFFINITY=scatter numactl -i all %s %s` as recommended by the authors of GraphMat.
+| Software | Version (tested) | Usage | Description | Provided |
+|-------------|:-------------:|:-------------:|:-------------:|:-------------:|
+| GraphMat | [?](https://github.com/narayanan2004/GraphMat/) | Platform | Providing GraphMat implementation | - | - |
+| Graphalytics | 1.0 (TODO) | Driver| Graphalytics benchmark suite | ✔(maven) |
+| Granula | 0.1 (TODO) | Driver | Fine-grained performance analysis | ✔(maven) |
+| Intel MPI | ? | Deployment | Job deployment | - |
+| Slurm | ? | Deployment | Job deployment | - |
+| NFS | any | Deployment | Shared storage | - |
+| JDK | 7+ | Build | Java virtual machine | - |
+| Maven | 3.3.9 | Build | Building the platform driver | - |
+| GNU Make | 4.0 | Build | Building Graphmat code | - |
+| CMake | 3.2.2 | Build | Building Graphmat code | - |
+| Intel Compiler | ? | Build | Building Graphmat code | - |
 
+ - `Intel Compiler`: Graphmat source code needs to be built with Intel Compiler.
+ - `Slurm`: GraphMat platform driver needs to be deployed with Slurm.
+ - `Intel MPI`: GraphMat platform driver needs to be deployed via Intel MPI.
+ - `NFS`: GraphMat platform driver needs to be installed in a shared file system, e.g. NFS.
+
+### Adjust the benchmark configurations
+Adjust the GraphMat configurations in `config/platform.properties`.
+
+ - `platform.graphmat.home`: Directory where GraphMat has been installed.
+ - `platform.graphmat.intermediate-dir`:  Directory where intermediate conversion files are stored. During the benchmark, graphs are converted from Graphalytics format to GraphMat format.
+ - `platform.graphmat.num-threads`: Number of threads to use when running GraphMat.
+ - `platform.graphmat.command.convert`: The format of the command used to run the conversion executable. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
+ - `platform.graphmat.command.run`: The format of the command used to run the bencharmk executables. The default value is `%s %s` where the first argument refers to the binary name and the second argument refers to the binary arguments.
