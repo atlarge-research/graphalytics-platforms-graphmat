@@ -1,6 +1,6 @@
 # Graphalytics Graphmat platform driver
 
-[![Build Status](http://jenkins.tribler.org/buildStatus/icon?job=Graphalytics_Graphmat_master_tester)](http://jenkins.tribler.org/job/Graphalytics_Graphmat_master_tester/) (TODO: setup Jenkins continuous integration) 
+[![Build Status](https://jenkins.tribler.org/buildStatus/icon?job=Graphalytics/Platforms/GraphMat_master)](https://jenkins.tribler.org/job/Graphalytics/job/Platforms/job/GraphMat_master/)
 
 [GraphMat](https://github.com/narayanan2004/GraphMat) is ... (TODO: provide a short description on GraphMat).
 
