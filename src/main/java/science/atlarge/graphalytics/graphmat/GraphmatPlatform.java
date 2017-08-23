@@ -28,6 +28,9 @@ import science.atlarge.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.configuration.ConfigurationUtil;
 import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
+import science.atlarge.graphalytics.execution.BenchmarkRunSetup;
+import science.atlarge.graphalytics.execution.RunSpecification;
+import science.atlarge.graphalytics.execution.RuntimeSetup;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
 import science.atlarge.graphalytics.domain.graph.LoadedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetric;
@@ -185,30 +188,35 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	public void deleteGraph(LoadedGraph loadedGraph) {
 		// TODO parametrize graph conversion splits
 		for (int i = 0; i < 16; i++) {
-			tryDeleteIntermediateFile(loadedGraph.getEdgeFilePath() + i);
+			tryDeleteIntermediateFile(loadedGraph.getEdgePath() + i);
 		}
 	}
 
 
 	@Override
-	public void prepare(BenchmarkRun benchmarkRun) {
+	public void prepare(RunSpecification runSpecification) {
 
 	}
 
 	@Override
-	public void startup(BenchmarkRun benchmarkRun) {
-		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+	public void startup(RunSpecification runSpecification) {
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		startPlatformLogging(benchmarkRunSetup.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(RunSpecification runSpecification) throws PlatformExecutionException {
+
+		BenchmarkRun benchmarkRun = runSpecification.getBenchmarkRun();
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		RuntimeSetup runtimeSetup = runSpecification.getRuntimeSetup();
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		Object params = benchmarkRun.getAlgorithmParameters();
 		GraphmatJob job;
 
 		Long2LongMap vertexTranslation = null;
-		String graphFile = benchmarkRun.getLoadedGraph().getEdgeFilePath();
+		String graphFile = runtimeSetup.getLoadedGraph().getEdgePath();
 		try {
 			String vertexTranslationFile = createIntermediateFile(benchmarkRun.getFormattedGraph().getName() + "_vertex_translation", "bin");
 			try {
@@ -250,7 +258,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		}
 
 		String intermediateOutputPath = null;
-		boolean outputEnabled = benchmarkRun.isOutputRequired();
+		boolean outputEnabled = benchmarkRunSetup.isOutputRequired();
 
 		try{
 			if (outputEnabled) {
@@ -261,7 +269,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			job.execute();
 
 			if (outputEnabled) {
-				Path outputFile = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName());
+				Path outputFile = benchmarkRunSetup.getOutputDir().resolve(benchmarkRun.getName());
 				OutputConverter.parseAndWrite(
 						intermediateOutputPath,
 						outputFile.toAbsolutePath().toString(),
@@ -279,10 +287,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics finalize(RunSpecification runSpecification) {
 		stopPlatformLogging();
 
-		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+
+		String logs = FileUtil.readFile(benchmarkRunSetup.getLogDir().resolve("platform").resolve("driver.logs"));
 
 		Long startTime = null;
 		Long endTime = null;
@@ -337,7 +347,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void terminate(BenchmarkRun benchmarkRun) {
+	public void terminate(RunSpecification runSpecification) {
 
 	}
 
