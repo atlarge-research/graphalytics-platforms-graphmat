@@ -28,7 +28,11 @@ import science.atlarge.granula.util.FileUtil;
 import org.apache.commons.io.output.TeeOutputStream;
 import science.atlarge.graphalytics.configuration.ConfigurationUtil;
 import science.atlarge.graphalytics.configuration.InvalidConfigurationException;
+import science.atlarge.graphalytics.execution.BenchmarkRunSetup;
+import science.atlarge.graphalytics.execution.RunSpecification;
+import science.atlarge.graphalytics.execution.RuntimeSetup;
 import science.atlarge.graphalytics.domain.graph.FormattedGraph;
+import science.atlarge.graphalytics.domain.graph.LoadedGraph;
 import science.atlarge.graphalytics.report.result.BenchmarkMetric;
 import science.atlarge.graphalytics.report.result.BenchmarkMetrics;
 import science.atlarge.graphalytics.domain.algorithms.Algorithm;
@@ -78,8 +82,6 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	public static final String MTX_CONVERT_BINARY_NAME = BINARY_DIRECTORY + "/graph_convert";
 
 	private Configuration benchmarkConfig;
-	private String intermediateGraphFile;
-	private String graphFile;
 	private Long2LongMap vertexTranslation;
 
 
@@ -112,7 +114,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void loadGraph(FormattedGraph formattedGraph) throws Exception {
+	public LoadedGraph loadGraph(FormattedGraph formattedGraph) throws Exception {
 		LOG.info("Preprocessing graph \"{}\": generating intermediate mtx format.", formattedGraph.getName());
 
 		if (formattedGraph.getNumberOfVertices() > Integer.MAX_VALUE || formattedGraph.getNumberOfEdges() > Integer.MAX_VALUE) {
@@ -177,57 +179,58 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		args.add(outputFile);
 		runCommand(cmdFormat, MTX_CONVERT_BINARY_NAME, args);
 
-		// Success! Set paths to intermediate and output files
-		this.intermediateGraphFile = intermediateFile;
-		this.graphFile = outputFile;
+
+		tryDeleteIntermediateFile(intermediateFile);
+		return new LoadedGraph(formattedGraph, null, outputFile);
 	}
 
 	@Override
-	public void deleteGraph(FormattedGraph formattedGraph) {
-		tryDeleteIntermediateFile(intermediateGraphFile);
+	public void deleteGraph(LoadedGraph loadedGraph) {
 		// TODO parametrize graph conversion splits
 		for (int i = 0; i < 16; i++) {
-			tryDeleteIntermediateFile(graphFile + i);
+			tryDeleteIntermediateFile(loadedGraph.getEdgePath() + i);
 		}
 	}
 
-	private void setupGraph(FormattedGraph formattedGraph) throws Exception {
-
-		String intermediateFile = createIntermediateFile(formattedGraph.getName(), "txt");
-		String outputFile = createIntermediateFile(formattedGraph.getName(), "mtx");
-
-
-		String vertexTranslationFile = createIntermediateFile(formattedGraph.getName() + "_vertex_translation", "bin");
-		vertexTranslation = (Long2LongMap)BinIO.loadObject(vertexTranslationFile);
-
-
-		this.intermediateGraphFile = intermediateFile;
-		this.graphFile = outputFile;
-	}
 
 	@Override
-	public void prepare(BenchmarkRun benchmarkRun) {
+	public void prepare(RunSpecification runSpecification) {
 
 	}
 
 	@Override
-	public void startup(BenchmarkRun benchmarkRun) {
-		startPlatformLogging(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+	public void startup(RunSpecification runSpecification) {
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		startPlatformLogging(benchmarkRunSetup.getLogDir().resolve("platform").resolve("driver.logs"));
 	}
 
 	@Override
-	public void run(BenchmarkRun benchmarkRun) throws PlatformExecutionException {
+	public void run(RunSpecification runSpecification) throws PlatformExecutionException {
+
+		BenchmarkRun benchmarkRun = runSpecification.getBenchmarkRun();
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+		RuntimeSetup runtimeSetup = runSpecification.getRuntimeSetup();
 
 		Algorithm algorithm = benchmarkRun.getAlgorithm();
 		Object params = benchmarkRun.getAlgorithmParameters();
 		GraphmatJob job;
 
+		Long2LongMap vertexTranslation = null;
+		String graphFile = runtimeSetup.getLoadedGraph().getEdgePath();
 		try {
-			setupGraph(benchmarkRun.getFormattedGraph());
-		} catch (Exception e) {
+			String vertexTranslationFile = createIntermediateFile(benchmarkRun.getFormattedGraph().getName() + "_vertex_translation", "bin");
+			try {
+				vertexTranslation = (Long2LongMap) BinIO.loadObject(vertexTranslationFile);
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
 		boolean isDirected = benchmarkRun.getGraph().isDirected();
+
+
 
                 boolean translateVertexProperty = false;
 		switch (algorithm) {
@@ -255,7 +258,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 		}
 
 		String intermediateOutputPath = null;
-		boolean outputEnabled = benchmarkRun.isOutputRequired();
+		boolean outputEnabled = benchmarkRunSetup.isOutputRequired();
 
 		try{
 			if (outputEnabled) {
@@ -266,7 +269,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 			job.execute();
 
 			if (outputEnabled) {
-				Path outputFile = benchmarkRun.getOutputDir().resolve(benchmarkRun.getName());
+				Path outputFile = benchmarkRunSetup.getOutputDir().resolve(benchmarkRun.getName());
 				OutputConverter.parseAndWrite(
 						intermediateOutputPath,
 						outputFile.toAbsolutePath().toString(),
@@ -284,10 +287,12 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public BenchmarkMetrics finalize(BenchmarkRun benchmarkRun) {
+	public BenchmarkMetrics finalize(RunSpecification runSpecification) {
 		stopPlatformLogging();
 
-		String logs = FileUtil.readFile(benchmarkRun.getLogDir().resolve("platform").resolve("driver.logs"));
+		BenchmarkRunSetup benchmarkRunSetup = runSpecification.getBenchmarkRunSetup();
+
+		String logs = FileUtil.readFile(benchmarkRunSetup.getLogDir().resolve("platform").resolve("driver.logs"));
 
 		Long startTime = null;
 		Long endTime = null;
@@ -342,7 +347,7 @@ public class GraphmatPlatform implements GranulaAwarePlatform {
 	}
 
 	@Override
-	public void terminate(BenchmarkRun benchmarkRun) {
+	public void terminate(RunSpecification runSpecification) {
 
 	}
 
