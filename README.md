@@ -2,10 +2,12 @@
 
 [![Build Status](https://jenkins.tribler.org/buildStatus/icon?job=Graphalytics/Platforms/GraphMat_master)](https://jenkins.tribler.org/job/Graphalytics/job/Platforms/job/GraphMat_master/)
 
+
+
+### Getting started
 This is a [Graphalytics](https://github.com/ldbc/ldbc_graphalytics/) benchmark driver for the GraphMat graph-processing platform. Visit the [GraphMat repository](https://github.com/narayanan2004/GraphMat) for more information on this platform.
 
-
-### Build the platform driver 
+  - Make sure that you have [installed Graphalytics](https://github.com/ldbc/ldbc_graphalytics/wiki/Documentation%3A-Software-Build#the-core-repository). 
   - Download the source code from this repository.
   - Execute `mvn clean package` in the root directory (See details in [Software Build](https://github.com/ldbc/ldbc_graphalytics/wiki/Documentation:-Software-Build)).
   - Extract the distribution from  `graphalytics-{graphalytics-version}-graphmat-{platform-version}.tar.gz`.
@@ -45,4 +47,4 @@ Adjust the GraphMat configurations in `config/platform.properties`.
 
 ### Running the benchmark
 
-To execute Graphalytics benchmark on Graphmat, follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/ldbc/ldbc_graphalytics/wiki/Manual%3A-Running-Benchmark) with the GraphMat-specific instructions listed below.
+To execute a Graphalytics benchmark on Graphmat (using this driver), follow the steps in the Graphalytics tutorial on [Running Benchmark](https://github.com/ldbc/ldbc_graphalytics/wiki/Manual%3A-Running-Benchmark).
